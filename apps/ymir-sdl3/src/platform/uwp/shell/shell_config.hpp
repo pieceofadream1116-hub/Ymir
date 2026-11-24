@@ -43,6 +43,10 @@ struct ShellConfig {
     /// @brief Whether the faint CRT scanlines are drawn over the shell.
     bool scanlines = true;
 
+    /// @brief Whether the game picture is scaled straight to the screen size with nearest-neighbor sampling, so every
+    /// Saturn pixel stays crisp. Off uses the smoother sharp-bilinear scaling of desktop Ymir.
+    bool sharpPixels = true;
+
     /// @brief Whether the initial Welcome / Setup Wizard has been completed.
     bool wizardCompleted = false;
 

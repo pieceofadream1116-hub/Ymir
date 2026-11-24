@@ -48,6 +48,9 @@ bool ShellConfig::Load(const std::filesystem::path &path) {
     if (auto opt = data["Shell"]["Scanlines"].value<bool>()) {
         scanlines = *opt;
     }
+    if (auto opt = data["Shell"]["SharpPixels"].value<bool>()) {
+        sharpPixels = *opt;
+    }
     if (auto opt = data["Shell"]["WizardCompleted"].value<bool>()) {
         wizardCompleted = *opt;
     }
@@ -69,6 +72,7 @@ bool ShellConfig::Save(const std::filesystem::path &path) const {
         {"Mode", std::string{mode == UIMode::Desktop ? kModeDesktop : kModeShell}},
         {"SafeArea", static_cast<double>(safeArea)},
         {"Scanlines", scanlines},
+        {"SharpPixels", sharpPixels},
         {"WizardCompleted", wizardCompleted},
     };
     toml::table musicTbl{

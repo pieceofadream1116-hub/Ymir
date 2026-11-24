@@ -26,6 +26,7 @@
 #include <ymir/hw/smpc/smpc.hpp>
 #include <ymir/media/cd_interface.hpp>
 #include <ymir/media/saturn_header.hpp>
+#include <ymir/sys/saturn.hpp>
 #include <ymir/util/string.hpp>
 
 #include <fmt/format.h>
@@ -159,6 +160,13 @@ OverlayScreen Shell::BuildSettingsScreen() {
                 settings.video.useHardwareAcceleration = value;
                 settings.MakeDirty();
                 ctx.EnqueueEvent(app::events::emu::SwitchVDPRenderer());
+            }));
+        page.rows.push_back(OverlayRow::Toggle(
+            "Sharp pixels", "Crisp, unblurred picture: no smoothing when the game is stretched to the TV.",
+            [this] { return m_config.sharpPixels; },
+            [this](bool value) {
+                m_config.sharpPixels = value;
+                SaveConfig();
             }));
         page.rows.push_back(OverlayRow::Toggle(
             "Deinterlace", "Render interlaced high-resolution modes as progressive video. Costs performance.",

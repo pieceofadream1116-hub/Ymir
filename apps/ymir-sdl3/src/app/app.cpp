@@ -1154,6 +1154,14 @@ void App::RunEmulator() {
     const gfx::GUITextureHandle dispTexture = dispTextureResult.Value();
     YMIR_BOOT_TRACE("display texture OK\n");
 
+#if YMIR_PLATFORM_UWP
+    // "Sharp pixels" (Xbox shell setting): the framebuffer is scaled straight to the final on-screen size with nearest
+    // sampling and then drawn 1:1, so no linear filtering softens the picture on the TV. This is the size it was
+    // rendered at, or 0 when the sharp-bilinear path is used.
+    float sharpDispWidth = 0.0f;
+    float sharpDispHeight = 0.0f;
+#endif
+
     auto renderDispTexture = [&](double targetWidth, double targetHeight) {
         auto &videoSettings = settings.video;
         const bool forceAspectRatio = videoSettings.forceAspectRatio;
@@ -1184,6 +1192,17 @@ void App::RunEmulator() {
                            .y = 0.0f,
                            .w = (float)screen.width * screen.fbScale,
                            .h = (float)screen.height * screen.fbScale};
+#if YMIR_PLATFORM_UWP
+        sharpDispWidth = 0.0f;
+        sharpDispHeight = 0.0f;
+        if (m_shell.SharpPixels()) {
+            // The texture is at least kMaxResH*fbScale wide, which always covers the target size
+            sharpDispWidth = std::round((float)targetWidth);
+            sharpDispHeight = std::round((float)targetHeight);
+            dstRect.w = sharpDispWidth;
+            dstRect.h = sharpDispHeight;
+        }
+#endif
 
         if (videoSettings.useHardwareAcceleration) {
             gfx::IGraphicsContext &gfxCtx = m_graphicsService.GetGraphicsContext();
@@ -3937,6 +3956,13 @@ void App::RunEmulator() {
                                .y = 0.0f,
                                .w = (float)(screen.width * screen.fbScale),
                                .h = (float)(screen.height * screen.fbScale)};
+#if YMIR_PLATFORM_UWP
+            if (sharpDispWidth > 0.0f && sharpDispHeight > 0.0f) {
+                // Already at the final size: draw it 1:1
+                srcRect.w = sharpDispWidth;
+                srcRect.h = sharpDispHeight;
+            }
+#endif
             gfx::FRect dstRect{.x = floorf(slackX * 0.5f),
                                .y = floorf(slackY * 0.5f + menuBarHeight),
                                .w = (float)scaledWidth,

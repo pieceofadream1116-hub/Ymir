@@ -110,6 +110,11 @@ public:
         m_cheats.Apply(bus);
     }
 
+    /// @brief Whether the game picture is drawn with crisp, unsmoothed pixels (the "Sharp pixels" setting).
+    [[nodiscard]] bool SharpPixels() const {
+        return m_config.sharpPixels;
+    }
+
 private:
     enum class Screen {
         Home,   // the library and the action spheres; the emulation is paused

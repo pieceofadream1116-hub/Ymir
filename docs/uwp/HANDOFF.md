@@ -1601,6 +1601,14 @@ deploy nem inicia o app.
   a imagem da Wikipedia deixou de ser usada como capa. Mais 5 capas embutidas (Road Rash, Sega Rally Championship, Spot
   Goes to Hollywood, Street Fighter Collection, WWF In Your House). Capa embutida também casa pelo nome do arquivo.
 
+### Sessão 2026-11-24 (6) — "Sharp pixels"
+
+- O usuário corrigiu: a imagem está **borrada** (não "peluda"). Causa: o caminho sharp-bilinear desenha a textura
+  escalada com filtro linear e a proporção 4:3 força uma redução horizontal não inteira. Nova opção do shell
+  **Sharp pixels** (página VIDEO, `shell.toml` `SharpPixels`, ligada por padrão): o framebuffer é escalado direto para
+  o tamanho final com amostragem nearest e desenhado 1:1 (`app.cpp`, guardado por `YMIR_PLATFORM_UWP`).
+- Corrigido o build anterior: faltava `#include <ymir/sys/saturn.hpp>` em `settings_pages.cpp` (localizador de códigos).
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
