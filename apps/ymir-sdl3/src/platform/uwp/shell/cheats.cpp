@@ -6,6 +6,8 @@
 #include <cctype>
 #include <fstream>
 
+#include <fmt/format.h>
+
 namespace platform::uwp::shell {
 
 // The codes come from the Action Replay lists of Almar's Guides (almarsguides.com) and ConsoleDatabase, for the USA
@@ -571,6 +573,158 @@ void CheatChoices::SetOverride(const std::string &productNumber, const std::stri
     } else {
         m_overrides[productNumber] = game;
     }
+}
+
+} // namespace platform::uwp::shell
+
+// -----------------------------------------------------------------------------
+// Hands-free code finder
+
+namespace platform::uwp::shell {
+
+void AutoFinder::Start() {
+    m_stopRequested = false;
+    m_startRequested = true;
+}
+
+void AutoFinder::Stop() {
+    m_startRequested = false;
+    m_stopRequested = true;
+}
+
+void AutoFinder::Hit() {
+    if (Searching()) {
+        ++m_hitsRequested;
+    }
+}
+
+void AutoFinder::SetMessage(std::string message) {
+    std::lock_guard lock{m_mutex};
+    m_status.message = std::move(message);
+    ++m_status.serial;
+}
+
+void AutoFinder::Snapshot(ymir::sys::SH2Bus &bus) {
+    m_addresses.clear();
+    m_first.clear();
+    for (const auto &[base, size] : kWorkRam) {
+        for (uint32 offset = 0; offset < size; offset += 2) {
+            m_addresses.push_back(base + offset);
+            m_first.push_back(bus.Peek<uint16>(base + offset));
+        }
+    }
+    m_ref = m_first;
+    m_last = m_first;
+    m_drops.assign(m_addresses.size(), 0);
+    m_frames = 0;
+    m_hits = 0;
+    m_hitsRequested = 0;
+    m_searching = true;
+}
+
+void AutoFinder::Step(ymir::sys::SH2Bus &bus) {
+    if (m_stopRequested.exchange(false)) {
+        m_searching = false;
+        m_addresses = {};
+        m_first = {};
+        m_ref = {};
+        m_last = {};
+        m_drops = {};
+        std::lock_guard lock{m_mutex};
+        m_status.searching = false;
+        m_status.count = 0;
+        return;
+    }
+    if (m_startRequested.exchange(false)) {
+        Snapshot(bus);
+        SetMessage("Searching for your energy. After each hit, click the left stick");
+    }
+    if (!m_searching) {
+        return;
+    }
+
+    std::size_t kept = 0;
+    const bool hit = m_hitsRequested.exchange(0) > 0;
+    if (hit) {
+        // Keep the values that went down since the last press
+        for (std::size_t i = 0; i < m_addresses.size(); ++i) {
+            const uint16 now = bus.Peek<uint16>(m_addresses[i]);
+            if (now < m_ref[i]) {
+                m_addresses[kept] = m_addresses[i];
+                m_first[kept] = m_first[i];
+                m_ref[kept] = now;
+                m_last[kept] = now;
+                m_drops[kept] = 0;
+                ++kept;
+            }
+        }
+        ++m_hits;
+    } else if (++m_frames >= kCheckEveryFrames) {
+        // While playing: energy does not go up, and it falls only when hit (at most once before the press)
+        m_frames = 0;
+        for (std::size_t i = 0; i < m_addresses.size(); ++i) {
+            const uint16 now = bus.Peek<uint16>(m_addresses[i]);
+            if (now > m_last[i]) {
+                continue;
+            }
+            uint8 drops = m_drops[i];
+            if (now < m_last[i] && ++drops > 1) {
+                continue;
+            }
+            m_addresses[kept] = m_addresses[i];
+            m_first[kept] = m_first[i];
+            m_ref[kept] = m_ref[i];
+            m_last[kept] = now;
+            m_drops[kept] = drops;
+            ++kept;
+        }
+    } else {
+        return;
+    }
+    m_addresses.resize(kept);
+    m_first.resize(kept);
+    m_ref.resize(kept);
+    m_last.resize(kept);
+    m_drops.resize(kept);
+
+    if (kept == 0) {
+        // Lost it (for example after dying, which refills the energy): start again from here
+        Snapshot(bus);
+        SetMessage("Lost track, searching again. After each hit, click the left stick");
+    } else if (m_hits >= kMinHits && kept <= kLockAt) {
+        std::string codes;
+        char line[24];
+        for (std::size_t i = 0; i < kept; ++i) {
+            std::snprintf(line, sizeof(line), "%s1%07X %04X", codes.empty() ? "" : " ", m_addresses[i] & 0x0FFF'FFFF,
+                          m_first[i]);
+            codes += line;
+        }
+        m_searching = false;
+        {
+            std::lock_guard lock{m_mutex};
+            m_lockCodes = std::move(codes);
+        }
+        SetMessage("FOUND IT! Energy locked full");
+    } else if (hit) {
+        SetMessage(fmt::format("Hit {}: {} spots left", m_hits, kept));
+    }
+
+    std::lock_guard lock{m_mutex};
+    m_status.searching = m_searching;
+    m_status.count = m_searching ? m_addresses.size() : 0;
+    m_status.hits = m_hits;
+}
+
+AutoFinder::Status AutoFinder::GetStatus() {
+    std::lock_guard lock{m_mutex};
+    return m_status;
+}
+
+std::optional<std::string> AutoFinder::TakeLockCodes() {
+    std::lock_guard lock{m_mutex};
+    std::optional<std::string> codes = std::move(m_lockCodes);
+    m_lockCodes.reset();
+    return codes;
 }
 
 } // namespace platform::uwp::shell

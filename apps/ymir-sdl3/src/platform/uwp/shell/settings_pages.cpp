@@ -693,6 +693,21 @@ OverlayScreen Shell::BuildCheatsScreen() {
             }));
     }
 
+    if (!product.empty()) {
+        page.rows.push_back(OverlayRow::Toggle(
+            "Find energy automatically",
+            "Turn on with your energy FULL, then Resume and play. Each time you get hit, click the LEFT STICK. "
+            "The app finds your energy and locks it full by itself.",
+            [this] { return m_autoFind.Searching(); },
+            [this](bool on) {
+                if (on) {
+                    m_autoFind.Start();
+                } else {
+                    m_autoFind.Stop();
+                }
+            }));
+    }
+
     if (m_cheatGame < 0 || CheatGames()[m_cheatGame].cheats.empty()) {
         page.rows.push_back(OverlayRow::Info(
             "No codes", [] { return std::string{"-"}; },

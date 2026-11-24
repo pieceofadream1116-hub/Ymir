@@ -107,6 +107,7 @@ public:
     /// @brief Writes the cheats switched on in the pause menu into the Saturn's memory.
     /// Called by the emulator thread after every frame.
     void ApplyCheats(ymir::sys::SH2Bus &bus) {
+        m_autoFind.Step(bus);
         m_cheats.Apply(bus);
     }
 
@@ -171,6 +172,10 @@ private:
     void DrawHome();
     void DrawPaused();
     void DrawInGameHint();
+    /// @brief The big messages of the hands-free energy finder, drawn over the game.
+    void DrawFinderBanner();
+    /// @brief Saves the code the hands-free finder made, once it has one.
+    void ProcessFinderResult();
     void DrawCubes(const DrawContext &ctx);
     void UpdateMarquee(const DrawContext &ctx, const HomeModel &model);
     [[nodiscard]] DrawContext MakeContext(ImDrawList *drawList);
@@ -223,6 +228,10 @@ private:
     bool m_cheatGameAuto = true; // the game was found from the disc title rather than picked by hand
     std::string m_cheatKey;      // the name custom cheats are saved under: the game name, or the disc number
     CodeFinder m_finder;         // the "find a code" page of the Cheats menu
+    AutoFinder m_autoFind;       // the hands-free "Find energy" switch
+    std::uint64_t m_autoFindSerial = 0;
+    double m_autoFindMessageTime = -100.0;
+    std::string m_autoFindMessage;
     std::string m_finderStatus;
 
     std::optional<std::uint64_t> m_viewDownTimestamp; // desktop mode: when View was pressed

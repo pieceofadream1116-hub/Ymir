@@ -189,6 +189,15 @@ void Shell::OnGamepadButton(SDL_GamepadButton button, bool down, std::uint64_t t
         return;
     }
 
+    // Hands-free energy finder: in game, the left stick click (or Share, where the console reports it) means
+    // "I was just hit" instead of opening the menu. View and the right stick click still open the menu
+    if (m_screen == Screen::InGame && m_autoFind.Searching() &&
+        (button == SDL_GAMEPAD_BUTTON_LEFT_STICK || button == SDL_GAMEPAD_BUTTON_MISC1)) {
+        m_autoFind.Hit();
+        m_music.PlaySfx(Sfx::Scroll);
+        return;
+    }
+
     // Any button pressed while the shell owns the gamepad plays the scroll/button sound
     if (m_screen != Screen::InGame) {
         m_music.PlaySfx(Sfx::Scroll);
@@ -681,11 +690,13 @@ void Shell::Draw() {
     ProcessPickedFolder();
     ProcessPickerLoad();
     RefreshLibrary();
+    ProcessFinderResult();
 
     switch (m_screen) {
     case Screen::InGame:
         m_lastFocusId = 0;
         DrawInGameHint();
+        DrawFinderBanner();
         break;
     case Screen::Paused: DrawPaused(); break;
     case Screen::Home:
@@ -822,6 +833,48 @@ void Shell::DrawInGameHint() {
     const Vec2 textSize = MeasureDotText(ctx, 4.0f, "Ymir menu");
     DrawDotText(ctx, {pos.x + m_layout.Scale(118.0f), pos.y + (size.y - textSize.y) * 0.5f}, 4.0f, "Ymir menu",
                 IM_COL32(220, 230, 255, static_cast<int>(255 * alpha)));
+}
+
+void Shell::ProcessFinderResult() {
+    const AutoFinder::Status status = m_autoFind.GetStatus();
+    if (status.serial != m_autoFindSerial) {
+        m_autoFindSerial = status.serial;
+        m_autoFindMessage = status.message;
+        m_autoFindMessageTime = m_time;
+    }
+    if (std::optional<std::string> codes = m_autoFind.TakeLockCodes(); codes && !m_cheatKey.empty()) {
+        constexpr const char *kName = "Energy (found)";
+        m_cheatChoices.AddCustom(m_cheatKey, {kName, *codes});
+        m_cheatChoices.Set(m_cheatKey, kName, true);
+        m_cheatChoices.Save();
+        RefreshCheats();
+        devlog::info<grp::shell>("Hands-free finder made a code for {}: {}", m_cheatKey, *codes);
+    }
+}
+
+void Shell::DrawFinderBanner() {
+    constexpr double kMessageSeconds = 5.0;
+    const AutoFinder::Status status = m_autoFind.GetStatus();
+    const bool showMessage = m_time - m_autoFindMessageTime < kMessageSeconds && !m_autoFindMessage.empty();
+    if (!showMessage && !status.searching) {
+        return;
+    }
+    const std::string text = showMessage ? m_autoFindMessage
+                                         : fmt::format("Finding energy: {} spots. Hit? Click left stick", status.count);
+    const float pitch = showMessage ? 4.0f : 3.4f;
+
+    // Top of the screen, inside the safe area, so it never covers the middle of the game
+    const DrawContext ctx = MakeContext(ImGui::GetForegroundDrawList());
+    const Rect safe = m_layout.SafeArea();
+    const Vec2 textSize = MeasureDotText(ctx, pitch, text);
+    const float padX = m_layout.Scale(28.0f);
+    const float padY = m_layout.Scale(16.0f);
+    const Vec2 size{std::min(textSize.x + padX * 2.0f, safe.size.x), textSize.y + padY * 2.0f};
+    const Vec2 pos{safe.pos.x + (safe.size.x - size.x) * 0.5f, safe.pos.y};
+    ctx.drawList->AddRectFilled(ToImVec2(pos), ImVec2(pos.x + size.x, pos.y + size.y), IM_COL32(10, 16, 36, 215),
+                                m_layout.Scale(24.0f));
+    DrawDotText(ctx, {pos.x + padX, pos.y + padY}, pitch, text,
+                showMessage ? IM_COL32(255, 220, 120, 255) : IM_COL32(200, 225, 255, 235));
 }
 
 void Shell::DrawCubes(const DrawContext &ctx) {

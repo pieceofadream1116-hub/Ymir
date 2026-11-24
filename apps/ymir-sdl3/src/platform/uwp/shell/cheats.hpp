@@ -22,7 +22,9 @@ Only compiled when YMIR_PLATFORM_UWP is set.
 #include <ymir/core/types.hpp>
 #include <ymir/sys/bus.hpp>
 
+#include <atomic>
 #include <filesystem>
+#include <optional>
 #include <map>
 #include <mutex>
 #include <set>
@@ -122,6 +124,65 @@ private:
     std::vector<uint32> m_addresses;
     std::vector<uint16> m_first; // values when the search started (e.g. full energy)
     std::vector<uint16> m_last;  // values at the previous step
+};
+
+/// @brief The hands-free version of the code finder, for a number that only goes down when the player is hurt (like
+/// energy). It runs on the emulator thread: while the player plays it drops every value that goes up or keeps falling
+/// on its own, and each time the player presses the "I was hit" button it keeps only the values that went down since
+/// the last press. When few enough are left it makes a code that holds them at their starting (full) value.
+class AutoFinder {
+public:
+    /// @brief What the player sees on screen.
+    struct Status {
+        bool searching = false;
+        std::size_t count = 0;
+        int hits = 0;
+        std::string message;      // the latest big message
+        std::uint64_t serial = 0; // goes up with every new message
+    };
+
+    /// @brief Starts a search (GUI thread). The snapshot is taken on the next emulated frame.
+    void Start();
+    /// @brief Stops the search (GUI thread).
+    void Stop();
+    /// @brief The player was just hit (GUI thread).
+    void Hit();
+    [[nodiscard]] bool Searching() const {
+        return m_searching.load() || m_startRequested.load();
+    }
+
+    /// @brief Runs one step (emulator thread, after every frame).
+    void Step(ymir::sys::SH2Bus &bus);
+
+    [[nodiscard]] Status GetStatus();
+    /// @brief The code made when the search finished, once (GUI thread).
+    [[nodiscard]] std::optional<std::string> TakeLockCodes();
+
+private:
+    void Snapshot(ymir::sys::SH2Bus &bus);
+    void SetMessage(std::string message);
+
+    static constexpr std::size_t kLockAt = 20; // lock when this many or fewer are left
+    static constexpr int kMinHits = 2;         // ...and the player was hit at least this many times
+    static constexpr int kCheckEveryFrames = 30;
+
+    std::atomic_bool m_startRequested{false};
+    std::atomic_bool m_stopRequested{false};
+    std::atomic_int m_hitsRequested{0};
+    std::atomic_bool m_searching{false};
+
+    // Emulator thread only
+    std::vector<uint32> m_addresses;
+    std::vector<uint16> m_first; // value when the search started (full energy)
+    std::vector<uint16> m_ref;   // value at the last "I was hit" press
+    std::vector<uint16> m_last;  // value at the last check
+    std::vector<uint8> m_drops;  // times it went down since the last press
+    int m_frames = 0;
+    int m_hits = 0;
+
+    std::mutex m_mutex; // guards the fields below
+    Status m_status;
+    std::optional<std::string> m_lockCodes;
 };
 
 /// @brief The player's cheat choices, saved in `cheats.txt` in the profile folder (on the external drive when there

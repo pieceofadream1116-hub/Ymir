@@ -1609,6 +1609,15 @@ deploy nem inicia o app.
   o tamanho final com amostragem nearest e desenhado 1:1 (`app.cpp`, guardado por `YMIR_PLATFORM_UWP`).
 - Corrigido o build anterior: faltava `#include <ymir/sys/saturn.hpp>` em `settings_pages.cpp` (localizador de códigos).
 
+### Sessão 2026-11-24 (7) — localizador de energia automático
+
+- O localizador manual (0.4.2.7) funcionou no Xbox mas foi difícil demais para o usuário (uma mão, morre com um tiro).
+- Novo `AutoFinder` (thread do emulador, `Shell::ApplyCheats`): chave **Find energy automatically** no menu Cheats.
+  Enquanto joga, a cada 30 quadros descarta valores que sobem ou caem mais de uma vez; clicar o **analógico esquerdo**
+  (ou Share/`SDL_GAMEPAD_BUTTON_MISC1`, se o console reportar) = "levei um tiro" (mantém os que caíram). Com ≤ 20 e ≥ 2
+  tiros, cria e liga o código "Energy (found)" no valor inicial. Lista vazia (p.ex. morreu) recomeça sozinha.
+  Mensagens grandes no topo da tela. Durante a busca, L3 não abre o menu (View e R3 continuam abrindo).
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
