@@ -299,7 +299,7 @@ void HomeScreen::DrawWizard(const DrawContext &ctx, const HomeModel &model, Home
     }
 
     const float padX = ctx.layout.Scale(36.0f);
-    DrawLabel(ctx, nerdFont, 24.0f, {panel.pos.x + padX, panel.pos.y + ctx.layout.Scale(78.0f)},
+    DrawLabel(ctx, nerdFont, 28.0f, {panel.pos.x + padX, panel.pos.y + ctx.layout.Scale(76.0f)},
               IM_COL32(215, 235, 255, 255), "Choose your Saturn BIOS and game library using the options below.",
               panel.size.x - padX * 2.0f - ctx.layout.Scale(90.0f));
 
@@ -319,13 +319,13 @@ void HomeScreen::DrawWizard(const DrawContext &ctx, const HomeModel &model, Home
         }
 
         const float textX = box.pos.x + ctx.layout.Scale(76.0f);
-        DrawDotText(ctx, {textX, box.pos.y + ctx.layout.Scale(14.0f)}, 2.8f, stepTitle, accent);
+        DrawDotText(ctx, {textX, box.pos.y + ctx.layout.Scale(12.0f)}, 3.2f, stepTitle, accent);
         const float textRight = box.pos.x + box.size.x - ctx.layout.Scale(18.0f);
         ctx.drawList->PushClipRect(ImVec2(textX, box.pos.y + ctx.layout.Scale(38.0f)),
                                    ImVec2(textRight, box.pos.y + box.size.y - ctx.layout.Scale(8.0f)), true);
-        DrawLabel(ctx, nerdFont, 21.0f, {textX, box.pos.y + ctx.layout.Scale(42.0f)}, IM_COL32(240, 248, 255, 255),
+        DrawLabel(ctx, nerdFont, 25.0f, {textX, box.pos.y + ctx.layout.Scale(40.0f)}, IM_COL32(240, 248, 255, 255),
                   statusLine);
-        DrawLabel(ctx, nerdFont, 18.0f, {textX, box.pos.y + ctx.layout.Scale(72.0f)}, IM_COL32(160, 205, 235, 235),
+        DrawLabel(ctx, nerdFont, 22.0f, {textX, box.pos.y + ctx.layout.Scale(70.0f)}, IM_COL32(160, 205, 235, 235),
                   detailLine);
         ctx.drawList->PopClipRect();
     };
@@ -348,9 +348,9 @@ void HomeScreen::DrawWizard(const DrawContext &ctx, const HomeModel &model, Home
     const std::span<const Option> options = OptionsFor(model);
     if (!options.empty()) {
         const Option &opt = options[std::min(m_focusIndex, options.size() - 1)];
-        DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({960.0f, 548.0f}), 2.9f, opt.label,
+        DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({960.0f, 546.0f}), 3.6f, opt.label,
                             IM_COL32(130, 230, 255, 255));
-        DrawLabelCentered(ctx, nerdFont, 19.0f, ctx.layout.CanvasPoint({960.0f, 582.0f}), IM_COL32(215, 235, 255, 255),
+        DrawLabelCentered(ctx, nerdFont, 26.0f, ctx.layout.CanvasPoint({960.0f, 586.0f}), IM_COL32(215, 235, 255, 255),
                           opt.description);
     }
 
@@ -488,7 +488,8 @@ void HomeScreen::DrawGameDetails(const DrawContext &ctx, const HomeModel &model)
     const std::vector<GameEntry> &games = m_tab == Tab::All ? (model.games != nullptr ? *model.games : empty)
                                                             : (model.recent != nullptr ? *model.recent : empty);
 
-    const Rect card = ToDisplay(ctx.layout, {{350.0f, 660.0f}, {1220.0f, 300.0f}});
+    // Large text for reading on a TV from the couch
+    const Rect card = ToDisplay(ctx.layout, {{230.0f, 645.0f}, {1460.0f, 340.0f}});
     const float rounding = ctx.layout.Scale(14.0f);
     const ImVec2 p0 = ToImVec2(card.pos);
     const ImVec2 p1(card.pos.x + card.size.x, card.pos.y + card.size.y);
@@ -511,9 +512,9 @@ void HomeScreen::DrawGameDetails(const DrawContext &ctx, const HomeModel &model)
     ImFont *nerdFont = ctx.theme.GetFont() != nullptr ? ctx.theme.GetFont() : ImGui::GetFont();
 
     if (m_focusKind == FocusKind::AddFolder || games.empty() || m_focusIndex >= games.size()) {
-        DrawDotText(ctx, {card.pos.x + ctx.layout.Scale(32.0f), card.pos.y + ctx.layout.Scale(28.0f)}, 3.4f,
+        DrawDotText(ctx, {card.pos.x + ctx.layout.Scale(32.0f), card.pos.y + ctx.layout.Scale(28.0f)}, 4.4f,
                     "ADD GAMES FOLDER", IM_COL32(120, 225, 255, 255));
-        DrawLabel(ctx, nerdFont, 24.0f, {card.pos.x + ctx.layout.Scale(32.0f), card.pos.y + ctx.layout.Scale(82.0f)},
+        DrawLabel(ctx, nerdFont, 30.0f, {card.pos.x + ctx.layout.Scale(32.0f), card.pos.y + ctx.layout.Scale(82.0f)},
                   IM_COL32(220, 238, 255, 255),
                   "Press A (or X) to open the Ymir Folder Browser and add a directory with your Sega Saturn disc "
                   "images (.chd, .cue, .iso, .ccd, .mds). Cover art and game synopses are downloaded automatically on "
@@ -552,28 +553,28 @@ void HomeScreen::DrawGameDetails(const DrawContext &ctx, const HomeModel &model)
     const float infoW = card.pos.x + card.size.x - pad - infoX;
     float y = card.pos.y + pad;
 
-    ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, y + ctx.layout.Scale(36.0f)), true);
-    DrawLabel(ctx, nerdFont, 28.0f, {infoX, y}, IM_COL32(240, 250, 255, 255), game.title);
+    ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, y + ctx.layout.Scale(48.0f)), true);
+    DrawLabel(ctx, nerdFont, 38.0f, {infoX, y}, IM_COL32(240, 250, 255, 255), game.title);
     ctx.drawList->PopClipRect();
-    y += ctx.layout.Scale(38.0f);
+    y += ctx.layout.Scale(50.0f);
 
     const std::string metaLine1 =
         fmt::format("Product: {}   |   Region: {}   |   Release: {}   |   Disc: {}",
                     game.productCode.empty() ? "N/A" : game.productCode, FormatRegion(game.region),
                     game.releaseDate.empty() ? "Unknown" : FormatReleaseDate(game.releaseDate),
                     game.deviceInfo.empty() ? "CD-1/1" : game.deviceInfo);
-    ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, y + ctx.layout.Scale(25.0f)), true);
-    DrawLabel(ctx, nerdFont, 18.0f, {infoX, y}, IM_COL32(120, 225, 255, 255), metaLine1);
+    ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, y + ctx.layout.Scale(34.0f)), true);
+    DrawLabel(ctx, nerdFont, 26.0f, {infoX, y}, IM_COL32(120, 225, 255, 255), metaLine1);
     ctx.drawList->PopClipRect();
-    y += ctx.layout.Scale(28.0f);
+    y += ctx.layout.Scale(36.0f);
 
     const std::string metaLine2 =
         fmt::format("Publisher: {}   |   Input: {}   |   Version: {}", FormatMaker(game.makerId),
                     FormatPeripherals(game.peripherals), game.version.empty() ? "1.000" : game.version);
-    ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, y + ctx.layout.Scale(25.0f)), true);
-    DrawLabel(ctx, nerdFont, 18.0f, {infoX, y}, IM_COL32(255, 205, 110, 245), metaLine2);
+    ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, y + ctx.layout.Scale(34.0f)), true);
+    DrawLabel(ctx, nerdFont, 26.0f, {infoX, y}, IM_COL32(255, 205, 110, 245), metaLine2);
     ctx.drawList->PopClipRect();
-    y += ctx.layout.Scale(32.0f);
+    y += ctx.layout.Scale(40.0f);
 
     // Separator line
     ctx.drawList->AddLine(ImVec2(infoX, y), ImVec2(infoX + infoW, y), IM_COL32(80, 190, 240, 110), 1.0f);
@@ -589,7 +590,7 @@ void HomeScreen::DrawGameDetails(const DrawContext &ctx, const HomeModel &model)
                           FormatPeripherals(game.peripherals));
 
     ctx.drawList->PushClipRect(ImVec2(infoX, y), ImVec2(infoX + infoW, card.pos.y + card.size.y - pad), true);
-    DrawLabel(ctx, nerdFont, 21.0f, {infoX, y}, IM_COL32(205, 228, 248, 255), shownSynopsis, infoW);
+    DrawLabel(ctx, nerdFont, 29.0f, {infoX, y}, IM_COL32(205, 228, 248, 255), shownSynopsis, infoW);
     ctx.drawList->PopClipRect();
 }
 
@@ -617,7 +618,7 @@ void HomeScreen::DrawSpheres(const DrawContext &ctx, const HomeModel &model, Hom
                 m_focusKind = FocusKind::Sphere;
                 m_focusIndex = i;
             }
-            DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({refPos.x, refPos.y + 62.0f}), 2.4f, option.label,
+            DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({refPos.x, refPos.y + 66.0f}), 3.2f, option.label,
                                 focused ? IM_COL32(255, 255, 255, 255) : IM_COL32(165, 210, 240, 210));
         }
         return;
@@ -649,7 +650,7 @@ void HomeScreen::DrawSpheres(const DrawContext &ctx, const HomeModel &model, Hom
             m_focusKind = FocusKind::Sphere;
             m_focusIndex = i;
         }
-        DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({refPos.x, refPos.y + kSphereRadius + 22.0f}), 2.4f,
+        DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({refPos.x, refPos.y + kSphereRadius + 26.0f}), 3.2f,
                             option.label, focused ? IM_COL32(255, 255, 255, 255) : IM_COL32(165, 210, 240, 210));
     }
 }
@@ -663,8 +664,8 @@ void HomeScreen::DrawSphereHeader(const DrawContext &ctx, const HomeModel &model
     const std::size_t idx = std::min(m_focusIndex, options.size() - 1);
     const Option &option = options[idx];
 
-    DrawHoloLabelCentered(ctx, imguiData->fonts.display, 42.0f, ctx.layout.CanvasPoint({960.0f, 345.0f}), option.label);
-    DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({960.0f, 392.0f}), 3.0f, option.description,
+    DrawHoloLabelCentered(ctx, imguiData->fonts.display, 52.0f, ctx.layout.CanvasPoint({960.0f, 340.0f}), option.label);
+    DrawDotTextCentered(ctx, ctx.layout.CanvasPoint({960.0f, 398.0f}), 3.8f, option.description,
                         IM_COL32(150, 215, 255, 255));
 }
 

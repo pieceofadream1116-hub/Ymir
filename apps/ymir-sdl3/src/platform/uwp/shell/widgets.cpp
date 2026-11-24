@@ -46,8 +46,8 @@ namespace {
     constexpr float kDotFill = 0.78f;
 
     /// @brief Font size of the legend labels and glyph radius of the legend, in reference units.
-    constexpr float kLegendFontSize = 26.0f;
-    constexpr float kLegendGlyphRadius = 15.5f;
+    constexpr float kLegendFontSize = 32.0f;
+    constexpr float kLegendGlyphRadius = 19.0f;
 
     /// @brief Font size of the subtle version text in the bottom-right corner, in reference units.
     constexpr float kVersionFontSize = 20.0f;

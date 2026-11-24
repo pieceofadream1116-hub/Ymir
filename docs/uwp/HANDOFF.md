@@ -1579,6 +1579,12 @@ deploy nem inicia o app.
   O jogo é identificado pelo título do cabeçalho (`BundledCoverName()` em `cheats.cpp`). Myst entrou na lista só pela capa.
 - `CoverCache::kMaxEdge` 256 → 512 para capas nítidas na TV.
 
+### Sessão 2026-11-24 (3) — texto maior na tela inicial
+
+- O usuário não consegue ler o texto na TV. Tela inicial: cartão de detalhes do jogo maior (título 38, linhas de
+  informação 26, sinopse 29), rótulos das esferas e descrições maiores, assistente de primeira execução maior,
+  legenda dos botões 26 → 32. Os menus (overlay) já tinham sido aumentados na sessão anterior.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
