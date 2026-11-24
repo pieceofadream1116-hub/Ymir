@@ -1585,6 +1585,11 @@ deploy nem inicia o app.
   informação 26, sinopse 29), rótulos das esferas e descrições maiores, assistente de primeira execução maior,
   legenda dos botões 26 → 32. Os menus (overlay) já tinham sido aumentados na sessão anterior.
 
+### Sessão 2026-11-24 (4) — texto maior em todos os menus
+
+- Página "About" do overlay, dica "Ymir menu" no jogo e menus avançados ImGui (padrão UWP: `overrideUIScale = true`,
+  `uiScale = 1.5`, guardado em `settings.cpp`) também maiores.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):

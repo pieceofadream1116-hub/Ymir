@@ -814,13 +814,13 @@ void Shell::DrawInGameHint() {
     const DrawContext ctx = MakeContext(ImGui::GetForegroundDrawList());
 
     const Rect safe = m_layout.SafeArea();
-    const Vec2 size{m_layout.Scale(330.0f), m_layout.Scale(64.0f)};
+    const Vec2 size{m_layout.Scale(380.0f), m_layout.Scale(72.0f)};
     const Vec2 pos{safe.pos.x + safe.size.x - size.x, safe.pos.y + safe.size.y - size.y};
     ctx.drawList->AddRectFilled(ToImVec2(pos), ImVec2(pos.x + size.x, pos.y + size.y),
                                 IM_COL32(10, 16, 36, static_cast<int>(200 * alpha)), m_layout.Scale(32.0f));
     DrawGlyph(ctx, Glyph::View, {pos.x + m_layout.Scale(62.0f), pos.y + size.y * 0.5f}, 18.0f);
-    const Vec2 textSize = MeasureDotText(ctx, 3.4f, "Ymir menu");
-    DrawDotText(ctx, {pos.x + m_layout.Scale(118.0f), pos.y + (size.y - textSize.y) * 0.5f}, 3.4f, "Ymir menu",
+    const Vec2 textSize = MeasureDotText(ctx, 4.0f, "Ymir menu");
+    DrawDotText(ctx, {pos.x + m_layout.Scale(118.0f), pos.y + (size.y - textSize.y) * 0.5f}, 4.0f, "Ymir menu",
                 IM_COL32(220, 230, 255, static_cast<int>(255 * alpha)));
 }
 

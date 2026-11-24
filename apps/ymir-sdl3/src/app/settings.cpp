@@ -1036,8 +1036,14 @@ void Settings::ResetToDefaults() {
     general.includeNightlyBuilds = false;
     general.enableDiscordPresence = false;
 
+#if YMIR_PLATFORM_UWP
+    // The advanced menus are read on a TV from across the room: start them half again as large
+    gui.overrideUIScale = true;
+    gui.uiScale = 1.5;
+#else
     gui.overrideUIScale = false;
     gui.uiScale = 1.0;
+#endif
     gui.rememberWindowGeometry = true;
     gui.showMessages = true;
     gui.showGameNameOnTitleBar = true;

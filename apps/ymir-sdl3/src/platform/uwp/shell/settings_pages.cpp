@@ -434,7 +434,7 @@ OverlayScreen Shell::BuildSettingsScreen() {
                 DrawDotText(dctx, {textLeft, banner.pos.y + dctx.layout.Scale(22.0f)}, 5.2f, "YMIR",
                             IM_COL32(150, 235, 255, 255));
             }
-            DrawLabel(dctx, nerdFont, 24.0f, {textLeft, banner.pos.y + dctx.layout.Scale(88.0f)},
+            DrawLabel(dctx, nerdFont, 28.0f, {textLeft, banner.pos.y + dctx.layout.Scale(84.0f)},
                       IM_COL32(165, 225, 255, 255),
                       "Sega Saturn Emulator  •  v" Ymir_VERSION "  •  Xbox/UWP build " YMIR_UWP_BUILD_NUMBER);
 
@@ -443,7 +443,7 @@ OverlayScreen Shell::BuildSettingsScreen() {
             // Two-column credit cards: Left = Authors, Right = Special Thanks
             const float colGap = dctx.layout.Scale(20.0f);
             const float colW = (rect.size.x - colGap) * 0.5f;
-            const float cardH = dctx.layout.Scale(210.0f);
+            const float cardH = dctx.layout.Scale(250.0f);
 
             const auto drawCardFrame = [&](Rect card, std::string_view title, const char *faGlyph, ImU32 accent) {
                 dl->AddRectFilled(ToImVec2(card.pos), ImVec2(card.pos.x + card.size.x, card.pos.y + card.size.y),
@@ -452,34 +452,34 @@ OverlayScreen Shell::BuildSettingsScreen() {
                             dctx.layout.Scale(10.0f), 0, std::max(1.0f, dctx.layout.Scale(1.6f)));
                 float titleX = card.pos.x + dctx.layout.Scale(20.0f);
                 if (iconFont != nullptr && faGlyph != nullptr) {
-                    DrawLabel(dctx, iconFont, 22.0f, {titleX, card.pos.y + dctx.layout.Scale(16.0f)}, accent, faGlyph);
-                    titleX += dctx.layout.Scale(32.0f);
+                    DrawLabel(dctx, iconFont, 28.0f, {titleX, card.pos.y + dctx.layout.Scale(14.0f)}, accent, faGlyph);
+                    titleX += dctx.layout.Scale(40.0f);
                 }
-                DrawDotText(dctx, {titleX, card.pos.y + dctx.layout.Scale(18.0f)}, 2.8f, title, accent);
+                DrawDotText(dctx, {titleX, card.pos.y + dctx.layout.Scale(16.0f)}, 3.4f, title, accent);
             };
 
             // Left Card: Credits & Port Author
             const Rect leftCard{{rect.pos.x, y}, {colW, cardH}};
             drawCardFrame(leftCard, "AUTHORS & ARCHITECTURE", "\xEF\x84\x9B", IM_COL32(90, 215, 255, 230));
             const float lx = leftCard.pos.x + dctx.layout.Scale(20.0f);
-            DrawLabel(dctx, nerdFont, 24.0f, {lx, leftCard.pos.y + dctx.layout.Scale(56.0f)},
+            DrawLabel(dctx, nerdFont, 28.0f, {lx, leftCard.pos.y + dctx.layout.Scale(58.0f)},
                       IM_COL32(255, 215, 110, 255), "Xbox / UWP Port Author: Marcelo (marcelofrau)");
-            DrawLabel(dctx, nerdFont, 20.0f, {lx, leftCard.pos.y + dctx.layout.Scale(86.0f)},
+            DrawLabel(dctx, nerdFont, 25.0f, {lx, leftCard.pos.y + dctx.layout.Scale(94.0f)},
                       IM_COL32(205, 228, 248, 255),
                       "Saturn BIOS 3D shell, D3D12 compute/graphics port, XAudio2 backend & Xbox integration.",
                       colW - dctx.layout.Scale(40.0f));
-            DrawLabel(dctx, nerdFont, 23.0f, {lx, leftCard.pos.y + dctx.layout.Scale(142.0f)},
+            DrawLabel(dctx, nerdFont, 27.0f, {lx, leftCard.pos.y + dctx.layout.Scale(170.0f)},
                       IM_COL32(130, 235, 255, 255), "Ymir Core Emulator: StrikerX3 & Contributors");
-            DrawLabel(dctx, nerdFont, 19.0f, {lx, leftCard.pos.y + dctx.layout.Scale(170.0f)},
+            DrawLabel(dctx, nerdFont, 24.0f, {lx, leftCard.pos.y + dctx.layout.Scale(204.0f)},
                       IM_COL32(175, 205, 235, 240), "High-accuracy Sega Saturn emulation core (GPLv3).");
 
             // Right Card: Special Thanks
             const Rect rightCard{{rect.pos.x + colW + colGap, y}, {colW, cardH}};
             drawCardFrame(rightCard, "SPECIAL THANKS", "\xEF\x80\x84", IM_COL32(255, 185, 75, 235));
             const float rx = rightCard.pos.x + dctx.layout.Scale(20.0f);
-            DrawLabel(dctx, nerdFont, 25.0f, {rx, rightCard.pos.y + dctx.layout.Scale(56.0f)},
+            DrawLabel(dctx, nerdFont, 29.0f, {rx, rightCard.pos.y + dctx.layout.Scale(58.0f)},
                       IM_COL32(255, 230, 140, 255), "MewLew   •   alouisious   •   DanP142");
-            DrawLabel(dctx, nerdFont, 21.0f, {rx, rightCard.pos.y + dctx.layout.Scale(94.0f)},
+            DrawLabel(dctx, nerdFont, 26.0f, {rx, rightCard.pos.y + dctx.layout.Scale(100.0f)},
                       IM_COL32(220, 238, 255, 255),
                       "Thank you to these contributors and the Emulation Revival community for the support, testing, "
                       "ideas, and inspiration!",
@@ -488,7 +488,7 @@ OverlayScreen Shell::BuildSettingsScreen() {
             y += cardH + dctx.layout.Scale(18.0f);
 
             // Bottom System Summary Bar
-            const Rect sysCard{{rect.pos.x, y}, {rect.size.x, dctx.layout.Scale(126.0f)}};
+            const Rect sysCard{{rect.pos.x, y}, {rect.size.x, dctx.layout.Scale(150.0f)}};
             drawCardFrame(sysCard, "SYSTEM & PROFILE STATUS", "\xEF\x8B\x9B", IM_COL32(80, 220, 165, 225));
             const float sx = sysCard.pos.x + dctx.layout.Scale(20.0f);
             const std::string biosStr =
@@ -498,9 +498,9 @@ OverlayScreen Shell::BuildSettingsScreen() {
                             m_games.size(), m_config.libraryFolders.size());
             const std::string line2 =
                 fmt::format("Profile Path: {}", ToUtf8(ctx.profile.GetPath(app::ProfilePath::Root)));
-            DrawLabel(dctx, nerdFont, 22.0f, {sx, sysCard.pos.y + dctx.layout.Scale(54.0f)},
+            DrawLabel(dctx, nerdFont, 27.0f, {sx, sysCard.pos.y + dctx.layout.Scale(56.0f)},
                       IM_COL32(235, 245, 255, 255), line1, sysCard.size.x - dctx.layout.Scale(40.0f));
-            DrawLabel(dctx, nerdFont, 19.0f, {sx, sysCard.pos.y + dctx.layout.Scale(86.0f)},
+            DrawLabel(dctx, nerdFont, 24.0f, {sx, sysCard.pos.y + dctx.layout.Scale(98.0f)},
                       IM_COL32(165, 205, 235, 240), line2, sysCard.size.x - dctx.layout.Scale(40.0f));
         };
         screen.pages.push_back(std::move(page));
