@@ -109,6 +109,7 @@ public:
     void ApplyCheats(ymir::sys::SH2Bus &bus) {
         m_autoFind.Step(bus);
         m_cheats.Apply(bus);
+        m_macro.Step(m_context.shellPadOverride);
     }
 
     /// @brief Whether the game picture is drawn with crisp, unsmoothed pixels (the "Sharp pixels" setting).
@@ -229,6 +230,7 @@ private:
     std::string m_cheatKey;      // the name custom cheats are saved under: the game name, or the disc number
     CodeFinder m_finder;         // the "find a code" page of the Cheats menu
     AutoFinder m_autoFind;       // the hands-free "Find energy" switch
+    ButtonMacro m_macro;         // enters a game's button-code cheats for the player
     std::uint64_t m_autoFindSerial = 0;
     double m_autoFindMessageTime = -100.0;
     std::string m_autoFindMessage;

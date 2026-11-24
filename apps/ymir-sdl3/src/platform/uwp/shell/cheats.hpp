@@ -41,6 +41,13 @@ struct CheatCode {
     int group = 0;     ///< cheats with the same nonzero group are exclusive: turning one on turns the others off
 };
 
+/// @brief A cheat the game has built in, entered with the buttons on the pause screen. The app presses them itself.
+struct ButtonCode {
+    const char *name;     ///< label of the menu item
+    const char *sequence; ///< Saturn buttons, space separated: Up Down Left Right A B C X Y Z L R Start
+    const char *note;     ///< what the player must do first, shown as the help text
+};
+
 /// @brief The cheats of one game.
 struct CheatGame {
     const char *name;    ///< game name shown in the menu
@@ -50,6 +57,40 @@ struct CheatGame {
     /// Words that must not appear in the disc's title (to tell apart sequels and spin-offs).
     std::vector<const char *> excludeKeys;
     std::vector<CheatCode> cheats;
+    std::vector<ButtonCode> buttonCodes{}; ///< the game's own button-code cheats
+};
+
+/// @brief Presses a button-code cheat on the Saturn's port 1 for the player: pauses the game with Start, presses the
+/// buttons one by one, then unpauses. Started from the GUI thread, stepped by the emulator thread after every frame.
+class ButtonMacro {
+public:
+    /// @brief Parses a sequence ("Right Down A Start ...") and queues it.
+    /// @return `false` if a button name is unknown or a macro is already running
+    bool Start(std::string_view sequence, std::string name);
+
+    [[nodiscard]] bool Running() const {
+        return m_running.load();
+    }
+
+    /// @brief Holds the next button (emulator thread).
+    /// @param[out] held receives the override for the port 1 pad (see SharedContext::shellPadOverride)
+    void Step(std::atomic<uint32> &held);
+
+    /// @brief The name of the code that just finished, once (GUI thread).
+    [[nodiscard]] std::optional<std::string> TakeFinished();
+
+private:
+    struct Press {
+        uint16 buttons; // Saturn buttons, active low (0xFFFF = none)
+        int frames;
+    };
+    std::atomic_bool m_running{false};
+    std::mutex m_mutex;
+    std::vector<Press> m_presses;
+    std::size_t m_index = 0;
+    int m_frame = 0;
+    std::string m_name;
+    std::optional<std::string> m_finished;
 };
 
 /// @brief The built-in cheat list.

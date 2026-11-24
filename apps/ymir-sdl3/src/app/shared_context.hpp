@@ -39,6 +39,9 @@
 #include <blockingconcurrentqueue.h>
 
 #include <array>
+#if YMIR_PLATFORM_UWP
+    #include <atomic>
+#endif
 #include <chrono>
 #include <deque>
 #include <filesystem>
@@ -660,6 +663,12 @@ struct SharedContext {
     };
 
     std::array<ControlPadInput, 2> controlPadInputs;
+#if YMIR_PLATFORM_UWP
+    /// Buttons the Xbox shell holds on port 1 by itself, to enter a game's button-code cheats. Bit 16 set means the
+    /// low 16 bits (a ymir::peripheral::Button value, active low) replace the player's buttons. Written by the
+    /// emulator thread, read by the peripheral report on the same thread.
+    std::atomic<uint32> shellPadOverride{0};
+#endif
     std::array<AnalogPadInput, 2> analogPadInputs;
     std::array<ArcadeRacerInput, 2> arcadeRacerInputs;
     std::array<MissionStickInput, 2> missionStickInputs;

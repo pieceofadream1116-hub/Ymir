@@ -836,6 +836,10 @@ void Shell::DrawInGameHint() {
 }
 
 void Shell::ProcessFinderResult() {
+    if (std::optional<std::string> entered = m_macro.TakeFinished()) {
+        m_autoFindMessage = *entered + " entered";
+        m_autoFindMessageTime = m_time;
+    }
     const AutoFinder::Status status = m_autoFind.GetStatus();
     if (status.serial != m_autoFindSerial) {
         m_autoFindSerial = status.serial;

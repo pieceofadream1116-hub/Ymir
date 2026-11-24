@@ -959,12 +959,23 @@ void InputService::ReadPeripheral(ymir::peripheral::PeripheralReport &report) {
     switch (report.type) {
     case ymir::peripheral::PeripheralType::ControlPad:
         report.report.controlPad.buttons = m_context.controlPadInputs[port - 1].buttons;
+#if YMIR_PLATFORM_UWP
+        // The Xbox shell is entering a button-code cheat for the player
+        if (const uint32 held = m_context.shellPadOverride.load(); port == 1 && (held & 0x1'0000) != 0) {
+            report.report.controlPad.buttons = static_cast<ymir::peripheral::Button>(held & 0xFFFF);
+        }
+#endif
         break;
     case ymir::peripheral::PeripheralType::AnalogPad: //
     {
         auto &specificReport = report.report.analogPad;
         const auto &inputs = m_context.analogPadInputs[port - 1];
         specificReport.buttons = inputs.buttons;
+#if YMIR_PLATFORM_UWP
+        if (const uint32 held = m_context.shellPadOverride.load(); port == 1 && (held & 0x1'0000) != 0) {
+            specificReport.buttons = static_cast<ymir::peripheral::Button>(held & 0xFFFF);
+        }
+#endif
         specificReport.analog = inputs.analogMode;
         specificReport.x = std::clamp(inputs.x * 128.0f + 128.0f, 0.0f, 255.0f);
         specificReport.y = std::clamp(inputs.y * 128.0f + 128.0f, 0.0f, 255.0f);

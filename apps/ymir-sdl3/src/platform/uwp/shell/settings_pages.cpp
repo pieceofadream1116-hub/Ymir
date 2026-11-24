@@ -693,6 +693,23 @@ OverlayScreen Shell::BuildCheatsScreen() {
             }));
     }
 
+    // The game's own button-code cheats, entered by the app on the pause screen
+    if (m_cheatGame >= 0) {
+        for (const ButtonCode &code : games[m_cheatGame].buttonCodes) {
+            const std::string name = code.name;
+            const std::string sequence = code.sequence;
+            page.rows.push_back(OverlayRow::Action(
+                "Enter code: " + name, fmt::format("{} Hands off the controller for a few seconds.", code.note),
+                [this, name, sequence] {
+                    if (m_macro.Start(sequence, name)) {
+                        m_autoFindMessage = "Entering " + name + "... hands off the controller";
+                        m_autoFindMessageTime = m_time;
+                        EnterGame();
+                    }
+                }));
+        }
+    }
+
     if (!product.empty()) {
         page.rows.push_back(OverlayRow::Toggle(
             "Find energy automatically",

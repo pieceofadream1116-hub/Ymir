@@ -162,7 +162,24 @@ const std::vector<CheatGame> &CheatGames() {
             .cheats =
                 {
                     {"Unlimited lives and missiles", "10265374 0909"},
-                    {"Unlimited energy", "102652B8 0069 10265278 0069"},
+                    // Has no effect on the USA disc T-15911H V1.000 (tested by the user); the code finder can make one
+                    {"Unlimited energy (does not work on all discs)", "102652B8 0069 10265278 0069"},
+                },
+            // The game's own pause-screen codes (Crystal Dynamics), from the cheat guides
+            .buttonCodes =
+                {
+                    {"Invincibility", "Right Down Down Left Right A Start C A Left",
+                     "Enters the code on the pause screen for you. Use it while flying."},
+                    {"Max shields and energy", "Right Down Down Left A Left Left",
+                     "Switch to the chase view (behind the ship) first, then use this while flying."},
+                    {"Nine lives", "Right Down Down Left B Up Down Down Y",
+                     "Switch to the chase view (behind the ship) first, then use this while flying."},
+                    {"Nine missiles", "Right Down Down Left Start C Up Down",
+                     "Enters the code on the pause screen for you. Use it while flying."},
+                    {"Energy sponge", "Right Down Down Left B Up Start Y",
+                     "Enters the code on the pause screen for you. Use it while flying."},
+                    {"Cloaking device", "Right Down Down Left Down Right A C Up Left A",
+                     "Switch to the chase view (behind the ship) first, then use this while flying."},
                 },
         },
         {
@@ -725,6 +742,111 @@ std::optional<std::string> AutoFinder::TakeLockCodes() {
     std::optional<std::string> codes = std::move(m_lockCodes);
     m_lockCodes.reset();
     return codes;
+}
+
+} // namespace platform::uwp::shell
+
+// -----------------------------------------------------------------------------
+// Button-code cheats
+
+namespace platform::uwp::shell {
+
+namespace {
+    // Bits of ymir::peripheral::Button (active low on the pad)
+    std::optional<uint16> ButtonBit(std::string_view name) {
+        static constexpr std::array<std::pair<std::string_view, uint16>, 13> kButtons{{
+            {"Right", 1u << 15u},
+            {"Left", 1u << 14u},
+            {"Down", 1u << 13u},
+            {"Up", 1u << 12u},
+            {"Start", 1u << 11u},
+            {"A", 1u << 10u},
+            {"C", 1u << 9u},
+            {"B", 1u << 8u},
+            {"R", 1u << 7u},
+            {"X", 1u << 6u},
+            {"Y", 1u << 5u},
+            {"Z", 1u << 4u},
+            {"L", 1u << 3u},
+        }};
+        for (const auto &[label, bit] : kButtons) {
+            if (label == name) {
+                return bit;
+            }
+        }
+        return std::nullopt;
+    }
+
+    // Timing in frames (60 per second): long enough for every game to see each press
+    constexpr int kHoldFrames = 6;
+    constexpr int kGapFrames = 6;
+    constexpr int kSettleFrames = 30; // after resuming from the app's menu, and after pausing the game
+} // namespace
+
+bool ButtonMacro::Start(std::string_view sequence, std::string name) {
+    if (m_running) {
+        return false;
+    }
+    constexpr uint16 kNone = 0xFFFF;
+    const uint16 start = *ButtonBit("Start");
+    std::vector<Press> presses;
+    presses.push_back({kNone, kSettleFrames});
+    // Pause the game with Start
+    presses.push_back({static_cast<uint16>(kNone & ~start), kHoldFrames});
+    presses.push_back({kNone, kSettleFrames});
+    std::size_t pos = 0;
+    while (pos < sequence.size()) {
+        const std::size_t end = std::min(sequence.find(' ', pos), sequence.size());
+        const std::string_view word = sequence.substr(pos, end - pos);
+        pos = end + 1;
+        if (word.empty()) {
+            continue;
+        }
+        const std::optional<uint16> bit = ButtonBit(word);
+        if (!bit) {
+            return false;
+        }
+        presses.push_back({static_cast<uint16>(kNone & ~*bit), kHoldFrames});
+        presses.push_back({kNone, kGapFrames});
+    }
+    // Unpause with Start
+    presses.push_back({kNone, kSettleFrames});
+    presses.push_back({static_cast<uint16>(kNone & ~start), kHoldFrames});
+    presses.push_back({kNone, kGapFrames});
+
+    std::lock_guard lock{m_mutex};
+    m_presses = std::move(presses);
+    m_index = 0;
+    m_frame = 0;
+    m_name = std::move(name);
+    m_running = true;
+    return true;
+}
+
+void ButtonMacro::Step(std::atomic<uint32> &held) {
+    if (!m_running) {
+        return;
+    }
+    std::lock_guard lock{m_mutex};
+    if (m_index >= m_presses.size()) {
+        held = 0;
+        m_running = false;
+        m_finished = m_name;
+        return;
+    }
+    // Bit 16: the override is active (see SharedContext::shellPadOverride)
+    held = 0x1'0000u | m_presses[m_index].buttons;
+    if (++m_frame >= m_presses[m_index].frames) {
+        m_frame = 0;
+        ++m_index;
+    }
+}
+
+std::optional<std::string> ButtonMacro::TakeFinished() {
+    std::lock_guard lock{m_mutex};
+    std::optional<std::string> name = std::move(m_finished);
+    m_finished.reset();
+    return name;
 }
 
 } // namespace platform::uwp::shell

@@ -1618,6 +1618,15 @@ deploy nem inicia o app.
   tiros, cria e liga o código "Energy (found)" no valor inicial. Lista vazia (p.ex. morreu) recomeça sozinha.
   Mensagens grandes no topo da tela. Durante a busca, L3 não abre o menu (View e R3 continuam abrindo).
 
+### Sessão 2026-11-24 (8) — códigos de botão automáticos
+
+- Códigos de botão do Solar Eclipse (invencibilidade, escudo/energia máx., 9 vidas, 9 mísseis, energy sponge,
+  camuflagem) como itens "Enter code: ..." no menu Cheats. `ButtonMacro` (thread do emulador) pressiona os botões no
+  controle da porta 1 via `SharedContext::shellPadOverride` (lido em `InputService::ReadPeripheral`, guardado):
+  Start para pausar, a sequência (6 quadros apertado, 6 solto), Start para despausar. A câmera de perseguição não é
+  detectável; o texto de ajuda pede para trocar antes.
+- O código "Unlimited energy" do guia foi marcado como "does not work on all discs" (não funciona no T-15911H V1.000).
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
