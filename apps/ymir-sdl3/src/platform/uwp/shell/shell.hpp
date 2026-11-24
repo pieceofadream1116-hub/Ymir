@@ -106,11 +106,7 @@ public:
 
     /// @brief Writes the cheats switched on in the pause menu into the Saturn's memory.
     /// Called by the emulator thread after every frame.
-    void ApplyCheats(ymir::sys::SH2Bus &bus) {
-        m_autoFind.Step(bus);
-        m_cheats.Apply(bus);
-        m_macro.Step(m_context.shellPadOverride);
-    }
+    void ApplyCheats(ymir::sys::SH2Bus &bus);
 
     /// @brief Whether the game picture is drawn with crisp, unsmoothed pixels (the "Sharp pixels" setting).
     [[nodiscard]] bool SharpPixels() const {

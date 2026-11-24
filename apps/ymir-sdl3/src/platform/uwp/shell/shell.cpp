@@ -227,6 +227,12 @@ void Shell::OnGamepadButton(SDL_GamepadButton button, bool down, std::uint64_t t
     }
 }
 
+void Shell::ApplyCheats(ymir::sys::SH2Bus &bus) {
+    m_autoFind.Step(bus);
+    m_cheats.Apply(bus);
+    m_macro.Step(m_context.shellPadOverride);
+}
+
 void Shell::OnDiscLoaded() {
     // Runs on the emulator thread; the GUI thread picks it up on the next frame
     m_discLoaded = true;
