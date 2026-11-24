@@ -92,6 +92,38 @@ private:
     std::vector<Op> m_ops;
 };
 
+/// @brief A simple cheat finder: snapshots the Saturn's work RAM and narrows it down to the 16-bit values that changed
+/// the way the player describes (for example "my energy went down"), so a code can be made for a game whose published
+/// codes do not work. Used from the GUI thread while the emulator is paused.
+class CodeFinder {
+public:
+    enum class Filter { Decreased, Increased, Unchanged, Changed };
+
+    /// @brief Starts a new search with every 16-bit value of both work RAM areas.
+    void Start(ymir::sys::SH2Bus &bus);
+
+    /// @brief Keeps only the addresses whose value changed as described since the last step.
+    void Keep(ymir::sys::SH2Bus &bus, Filter filter);
+
+    void Clear();
+
+    [[nodiscard]] bool Active() const {
+        return m_active;
+    }
+    [[nodiscard]] std::size_t Count() const {
+        return m_addresses.size();
+    }
+
+    /// @brief Action Replay codes that hold every remaining address at the value it had when the search started.
+    [[nodiscard]] std::string LockCodes() const;
+
+private:
+    bool m_active = false;
+    std::vector<uint32> m_addresses;
+    std::vector<uint16> m_first; // values when the search started (e.g. full energy)
+    std::vector<uint16> m_last;  // values at the previous step
+};
+
 /// @brief The player's cheat choices, saved in `cheats.txt` in the profile folder (on the external drive when there
 /// is one).
 class CheatChoices {
@@ -107,10 +139,20 @@ public:
     [[nodiscard]] std::string GetOverride(const std::string &productNumber) const;
     void SetOverride(const std::string &productNumber, const std::string &game);
 
+    /// @brief A cheat made with the code finder.
+    struct CustomCheat {
+        std::string name;
+        std::string codes;
+    };
+    [[nodiscard]] const std::vector<CustomCheat> &GetCustom(const std::string &game) const;
+    void AddCustom(const std::string &game, CustomCheat cheat);
+    void RemoveCustom(const std::string &game, const std::string &name);
+
 private:
     std::filesystem::path m_path;
     std::map<std::string, std::set<std::string>> m_on;   // game -> cheats switched on
     std::map<std::string, std::string> m_overrides;      // product number -> game
+    std::map<std::string, std::vector<CustomCheat>> m_custom; // game -> cheats made with the code finder
 };
 
 } // namespace platform::uwp::shell

@@ -437,12 +437,8 @@ void CoverCache::WorkerLoop(std::stop_token stopToken) {
                 }
             }
 
-            if (!imageBytes && !wiki.thumbnailUrl.empty()) {
-                imageBytes = HttpGetBytes(client, wiki.thumbnailUrl);
-                if (imageBytes) {
-                    devlog::info<grp::shell>("Downloaded cover art from Wikipedia for {}", searchTitle);
-                }
-            }
+            // No Wikipedia picture as a cover: the article image is often not the box (a photo of an insect for
+            // "Bug!", for example), and a wrong cover is worse than none
 
             if (imageBytes) {
                 // Verify that stb_image can decode it before caching to disk
@@ -530,12 +526,15 @@ std::unique_ptr<CoverCache::Cover> CoverCache::Load(app::services::GraphicsServi
         candidates.push_back(m_folder / std::filesystem::path{game.path.stem()}.concat(ext));
     }
 
-    // Files in the covers folder win; the box art built into the app (the games in CheatGames()) is the fallback
+    // The box art built into the app (the games in CheatGames()) comes first: it is known to be the right picture,
+    // while a downloaded file can be a wrong guess. Files in the covers folder are used for every other game.
     std::vector<std::pair<std::string, std::optional<std::string>>> sources;
-    for (const std::filesystem::path &candidate : candidates) {
-        sources.emplace_back(ToUtf8(candidate), std::nullopt);
+    // Matched by the disc title, or by the file name when the title is unusual
+    std::string bundled = BundledCoverName(game.title);
+    if (bundled.empty()) {
+        bundled = BundledCoverName(ToUtf8(game.path.stem()));
     }
-    if (const std::string bundled = BundledCoverName(game.title); !bundled.empty()) {
+    if (!bundled.empty()) {
         try {
             const auto embedfs = cmrc::Ymir_sdl3_shell_rc::get_filesystem();
             const std::string name = "covers/" + bundled + ".jpg";
@@ -545,6 +544,9 @@ std::unique_ptr<CoverCache::Cover> CoverCache::Load(app::services::GraphicsServi
             }
         } catch (...) {
         }
+    }
+    for (const std::filesystem::path &candidate : candidates) {
+        sources.emplace_back(ToUtf8(candidate), std::nullopt);
     }
 
     for (auto &[candidate, embedded] : sources) {

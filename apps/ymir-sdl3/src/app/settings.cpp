@@ -1162,8 +1162,15 @@ void Settings::ResetToDefaults() {
     video.swRenderer.threadedVDP1 = true;
     video.swRenderer.threadedVDP2 = true;
     video.swRenderer.threadedDeinterlacer = true;
+#if YMIR_PLATFORM_UWP
+    // The Xbox has the power for both: no combing on high-resolution screens and no dither "fur" on see-through
+    // polygons, the two things that make the Saturn picture look fuzzy on a big TV
+    video.enhancements.deinterlace = true;
+    video.enhancements.transparentMeshes = true;
+#else
     video.enhancements.deinterlace = false;
     video.enhancements.transparentMeshes = false;
+#endif
 
     audio.volume = 0.8;
     audio.mute = false;

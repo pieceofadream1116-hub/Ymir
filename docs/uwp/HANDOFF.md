@@ -1590,6 +1590,17 @@ deploy nem inicia o app.
 - Página "About" do overlay, dica "Ymir menu" no jogo e menus avançados ImGui (padrão UWP: `overrideUIScale = true`,
   `uiScale = 1.5`, guardado em `settings.cpp`) também maiores.
 
+### Sessão 2026-11-24 (5) — localizador de códigos, imagem e capas
+
+- Solar Eclipse (T-15911H V1.000 U): "vidas e mísseis" funciona, "energia infinita" (102652B8/10265278) não.
+  Nenhum outro código de energia publicado. Adicionada a página **FIND A CODE** no menu Cheats (`CodeFinder`):
+  busca de valores de 16 bits na WRAM baixa e alta (diminuiu / igual / aumentou) e "Lock it" cria um código salvo em
+  `cheats.txt` (linhas `custom`). Alternativa já existente no jogo: código de botões de invencibilidade.
+- Imagem "peluda" no Solar Eclipse: no UWP, `deinterlace` e `transparentMeshes` passam a vir ligados por padrão.
+- Capas: as embutidas agora têm prioridade sobre os arquivos baixados (a busca na Wikipedia trazia imagens erradas);
+  a imagem da Wikipedia deixou de ser usada como capa. Mais 5 capas embutidas (Road Rash, Sega Rally Championship, Spot
+  Goes to Hollywood, Street Fighter Collection, WWF In Your House). Capa embutida também casa pelo nome do arquivo.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):

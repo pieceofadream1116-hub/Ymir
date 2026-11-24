@@ -608,12 +608,23 @@ void Shell::RefreshCheats() {
         m_cheatGame = MatchCheatGame(header.gameTitle);
     }
 
+    m_cheatKey = m_cheatGame >= 0 ? std::string{games[m_cheatGame].name}
+                 : product.empty()  ? std::string{}
+                                    : "Disc " + product;
+
     std::vector<CheatEngine::Op> ops;
     if (m_cheatGame >= 0) {
         const CheatGame &game = games[m_cheatGame];
         for (const CheatCode &cheat : game.cheats) {
             if (m_cheatChoices.IsOn(game.name, cheat.name) && !CheatEngine::Parse(cheat.codes, ops)) {
                 devlog::warn<grp::shell>("Invalid cheat code for {} - {}", game.name, cheat.name);
+            }
+        }
+    }
+    if (!m_cheatKey.empty()) {
+        for (const CheatChoices::CustomCheat &cheat : m_cheatChoices.GetCustom(m_cheatKey)) {
+            if (m_cheatChoices.IsOn(m_cheatKey, cheat.name) && !CheatEngine::Parse(cheat.codes, ops)) {
+                devlog::warn<grp::shell>("Invalid found code for {} - {}", m_cheatKey, cheat.name);
             }
         }
     }
@@ -710,7 +721,85 @@ OverlayScreen Shell::BuildCheatsScreen() {
         }
     }
 
+    // Codes made with the code finder
+    if (!m_cheatKey.empty()) {
+        for (const CheatChoices::CustomCheat &cheat : m_cheatChoices.GetCustom(m_cheatKey)) {
+            const std::string key = m_cheatKey;
+            const std::string name = cheat.name;
+            page.rows.push_back(OverlayRow::Toggle(
+                name, "A code you made with the code finder (the FIND A CODE page). Switch on, then Resume.",
+                [this, key, name] { return m_cheatChoices.IsOn(key, name); },
+                [this, key, name](bool on) {
+                    m_cheatChoices.Set(key, name, on);
+                    m_cheatChoices.Save();
+                    RefreshCheats();
+                }));
+            page.rows.push_back(OverlayRow::Action(
+                "Delete " + name, "Removes this found code for good.", [this, key, name] {
+                    m_cheatChoices.RemoveCustom(key, name);
+                    m_cheatChoices.Save();
+                    RefreshCheats();
+                    m_overlay.Replace(BuildCheatsScreen());
+                }));
+        }
+    }
     screen.pages.push_back(std::move(page));
+
+    // The code finder: for when the published codes do not work on this disc
+    if (!m_cheatKey.empty()) {
+        OverlayPage finder{.title = "FIND A CODE", .rows = {}};
+        const auto keep = [this](CodeFinder::Filter filter, const char *what) {
+            if (!m_finder.Active()) {
+                m_finderStatus = "Press Start search first";
+                return;
+            }
+            m_finder.Keep(m_context.saturn.instance->mainBus, filter);
+            m_finderStatus = fmt::format("{}: {} left", what, m_finder.Count());
+        };
+        finder.rows.push_back(OverlayRow::Info(
+            "Status", [this] { return m_finderStatus.empty() ? std::string{"not started"} : m_finderStatus; },
+            "Finds where the game keeps a number, like your energy, so the app can lock it."));
+        finder.rows.push_back(OverlayRow::Action(
+            "1. Start search", "Do this when your energy is FULL. Then Resume and take a hit.", [this] {
+                m_finder.Start(m_context.saturn.instance->mainBus);
+                m_finderStatus = fmt::format("Started: {} to check", m_finder.Count());
+            }));
+        finder.rows.push_back(OverlayRow::Action(
+            "2. It went down", "Pick this after you took a hit and your energy went down. Then Resume.",
+            [keep] { keep(CodeFinder::Filter::Decreased, "Went down"); }));
+        finder.rows.push_back(OverlayRow::Action(
+            "3. It stayed the same", "Pick this after playing a little WITHOUT getting hit. Then Resume.",
+            [keep] { keep(CodeFinder::Filter::Unchanged, "Stayed the same"); }));
+        finder.rows.push_back(OverlayRow::Action(
+            "It went up", "Pick this if the number went up (for example after a pickup).",
+            [keep] { keep(CodeFinder::Filter::Increased, "Went up"); }));
+        finder.rows.push_back(OverlayRow::Action(
+            "4. Lock it",
+            "When 20 or fewer are left: makes a code that keeps the number as it was at the start, and switches it on.",
+            [this] {
+                if (!m_finder.Active() || m_finder.Count() == 0) {
+                    m_finderStatus = "Nothing found yet: start again";
+                    return;
+                }
+                if (m_finder.Count() > 20) {
+                    m_finderStatus = fmt::format("{} left: keep going until 20 or fewer", m_finder.Count());
+                    return;
+                }
+                const std::string name = fmt::format("Found code {}", m_cheatChoices.GetCustom(m_cheatKey).size() + 1);
+                m_cheatChoices.AddCustom(m_cheatKey, {name, m_finder.LockCodes()});
+                m_cheatChoices.Set(m_cheatKey, name, true);
+                m_cheatChoices.Save();
+                m_finder.Clear();
+                m_finderStatus = name + " made and switched on";
+                RefreshCheats();
+                m_overlay.Replace(BuildCheatsScreen());
+            }));
+        finder.rows.push_back(OverlayRow::Action("Start over", "Throws away this search.", [this] {
+            m_finder.Clear();
+            m_finderStatus.clear();
+        }));
+        screen.pages.push_back(std::move(finder));
+    }
     return screen;
 }
 

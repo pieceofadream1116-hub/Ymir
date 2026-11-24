@@ -216,6 +216,9 @@ private:
     CheatChoices m_cheatChoices;
     int m_cheatGame = -1;       // index into CheatGames() for the disc in the drive, -1 for none
     bool m_cheatGameAuto = true; // the game was found from the disc title rather than picked by hand
+    std::string m_cheatKey;      // the name custom cheats are saved under: the game name, or the disc number
+    CodeFinder m_finder;         // the "find a code" page of the Cheats menu
+    std::string m_finderStatus;
 
     std::optional<std::uint64_t> m_viewDownTimestamp; // desktop mode: when View was pressed
 

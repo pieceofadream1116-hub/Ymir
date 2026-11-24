@@ -1,6 +1,8 @@
 #include "cheats.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstdio>
 #include <cctype>
 #include <fstream>
 
@@ -105,6 +107,24 @@ const std::vector<CheatGame> &CheatGames() {
             .excludeKeys = {"MYSTARIA"},
             .cheats = {}, // no Action Replay codes exist; listed for its built-in cover
         },
+        // Games without codes, listed for their built-in covers
+        {.name = "Road Rash", .version = "USA", .titleKeys = {"ROADRASH"}, .excludeKeys = {}, .cheats = {}},
+        {.name = "Sega Rally Championship",
+         .version = "USA",
+         .titleKeys = {"SEGARALLY"},
+         .excludeKeys = {},
+         .cheats = {}},
+        {.name = "Spot Goes to Hollywood",
+         .version = "USA",
+         .titleKeys = {"SPOT", "HOLLYWOOD"},
+         .excludeKeys = {},
+         .cheats = {}},
+        {.name = "Street Fighter Collection",
+         .version = "USA",
+         .titleKeys = {"STREETFIGHTER", "COLLECTION"},
+         .excludeKeys = {},
+         .cheats = {}},
+        {.name = "WWF In Your House", .version = "USA", .titleKeys = {"WWF"}, .excludeKeys = {}, .cheats = {}},
         {
             .name = "Panzer Dragoon II Zwei",
             .version = "USA",
@@ -401,6 +421,12 @@ void CheatChoices::Load(const std::filesystem::path &path) {
             m_on[first].insert(second);
         } else if (kind == "game") {
             m_overrides[first] = second;
+        } else if (kind == "custom") {
+            // custom<TAB>game<TAB>name<TAB>codes
+            const std::size_t c = second.find('\t');
+            if (c != std::string::npos) {
+                m_custom[first].push_back({second.substr(0, c), second.substr(c + 1)});
+            }
         }
     }
 }
@@ -418,6 +444,104 @@ void CheatChoices::Save() const {
     for (const auto &[product, game] : m_overrides) {
         out << "game\t" << product << '\t' << game << '\n';
     }
+    for (const auto &[game, cheats] : m_custom) {
+        for (const CustomCheat &cheat : cheats) {
+            out << "custom\t" << game << '\t' << cheat.name << '\t' << cheat.codes << '\n';
+        }
+    }
+}
+
+const std::vector<CheatChoices::CustomCheat> &CheatChoices::GetCustom(const std::string &game) const {
+    static const std::vector<CustomCheat> none;
+    const auto it = m_custom.find(game);
+    return it != m_custom.end() ? it->second : none;
+}
+
+void CheatChoices::AddCustom(const std::string &game, CustomCheat cheat) {
+    RemoveCustom(game, cheat.name);
+    m_custom[game].push_back(std::move(cheat));
+}
+
+void CheatChoices::RemoveCustom(const std::string &game, const std::string &name) {
+    if (auto it = m_custom.find(game); it != m_custom.end()) {
+        std::erase_if(it->second, [&](const CustomCheat &c) { return c.name == name; });
+        if (it->second.empty()) {
+            m_custom.erase(it);
+        }
+    }
+    Set(game, name, false);
+}
+
+// -----------------------------------------------------------------------------
+// Code finder
+
+namespace {
+    // The two work RAM areas, where games keep their variables
+    constexpr std::array<std::pair<uint32, uint32>, 2> kWorkRam{{
+        {0x0020'0000, 0x0010'0000}, // low work RAM, 1 MiB
+        {0x0600'0000, 0x0010'0000}, // high work RAM, 1 MiB
+    }};
+} // namespace
+
+void CodeFinder::Start(ymir::sys::SH2Bus &bus) {
+    m_addresses.clear();
+    m_first.clear();
+    m_last.clear();
+    for (const auto &[base, size] : kWorkRam) {
+        for (uint32 offset = 0; offset < size; offset += 2) {
+            const uint32 address = base + offset;
+            const uint16 value = bus.Peek<uint16>(address);
+            m_addresses.push_back(address);
+            m_first.push_back(value);
+            m_last.push_back(value);
+        }
+    }
+    m_active = true;
+}
+
+void CodeFinder::Keep(ymir::sys::SH2Bus &bus, Filter filter) {
+    if (!m_active) {
+        return;
+    }
+    std::size_t kept = 0;
+    for (std::size_t i = 0; i < m_addresses.size(); ++i) {
+        const uint16 now = bus.Peek<uint16>(m_addresses[i]);
+        const uint16 before = m_last[i];
+        bool keep = false;
+        switch (filter) {
+        case Filter::Decreased: keep = now < before; break;
+        case Filter::Increased: keep = now > before; break;
+        case Filter::Unchanged: keep = now == before; break;
+        case Filter::Changed: keep = now != before; break;
+        }
+        if (keep) {
+            m_addresses[kept] = m_addresses[i];
+            m_first[kept] = m_first[i];
+            m_last[kept] = now;
+            ++kept;
+        }
+    }
+    m_addresses.resize(kept);
+    m_first.resize(kept);
+    m_last.resize(kept);
+}
+
+void CodeFinder::Clear() {
+    m_active = false;
+    m_addresses = {};
+    m_first = {};
+    m_last = {};
+}
+
+std::string CodeFinder::LockCodes() const {
+    std::string codes;
+    char line[24];
+    for (std::size_t i = 0; i < m_addresses.size(); ++i) {
+        std::snprintf(line, sizeof(line), "%s1%07X %04X", codes.empty() ? "" : " ", m_addresses[i] & 0x0FFF'FFFF,
+                      m_first[i]);
+        codes += line;
+    }
+    return codes;
 }
 
 bool CheatChoices::IsOn(const std::string &game, const std::string &cheat) const {
