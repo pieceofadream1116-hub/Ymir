@@ -38,7 +38,7 @@ namespace platform::uwp::shell {
 class CoverCache {
 public:
     /// @brief Largest cover edge kept in memory, in pixels; bigger images are scaled down.
-    static constexpr std::uint32_t kMaxEdge = 256;
+    static constexpr std::uint32_t kMaxEdge = 512; // sharp enough for a TV
 
     /// @brief Creates the cache.
     /// @param[in] folder the folder with the cover images (`<profile>/covers`)

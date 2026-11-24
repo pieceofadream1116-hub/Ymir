@@ -1,5 +1,6 @@
 #include "cover_cache.hpp"
 
+#include "cheats.hpp"
 #include "file_system.hpp"
 #include "shell_log.hpp"
 
@@ -13,6 +14,7 @@
 #include <winrt/Windows.Web.Http.Headers.h>
 #include <winrt/Windows.Web.Http.h>
 
+#include <cmrc/cmrc.hpp>
 #include <nlohmann/json.hpp>
 #include <stb_image.h>
 #include <toml++/toml.hpp>
@@ -22,6 +24,8 @@
 #include <cctype>
 #include <cstring>
 #include <fstream>
+
+CMRC_DECLARE(Ymir_sdl3_shell_rc);
 
 namespace platform::uwp::shell {
 
@@ -526,8 +530,28 @@ std::unique_ptr<CoverCache::Cover> CoverCache::Load(app::services::GraphicsServi
         candidates.push_back(m_folder / std::filesystem::path{game.path.stem()}.concat(ext));
     }
 
+    // Files in the covers folder win; the box art built into the app (the games in CheatGames()) is the fallback
+    std::vector<std::pair<std::string, std::optional<std::string>>> sources;
     for (const std::filesystem::path &candidate : candidates) {
-        const std::optional<std::string> data = fs::ReadWholeFile(candidate, kMaxCoverBytes);
+        sources.emplace_back(ToUtf8(candidate), std::nullopt);
+    }
+    if (const std::string bundled = BundledCoverName(game.title); !bundled.empty()) {
+        try {
+            const auto embedfs = cmrc::Ymir_sdl3_shell_rc::get_filesystem();
+            const std::string name = "covers/" + bundled + ".jpg";
+            if (embedfs.is_file(name)) {
+                const cmrc::file file = embedfs.open(name);
+                sources.emplace_back("built-in " + name, std::string{file.begin(), file.end()});
+            }
+        } catch (...) {
+        }
+    }
+
+    for (auto &[candidate, embedded] : sources) {
+        const std::optional<std::string> data =
+            embedded ? std::move(embedded) : fs::ReadWholeFile(std::filesystem::path{std::u8string{
+                                                                    candidate.begin(), candidate.end()}},
+                                                                kMaxCoverBytes);
         if (!data) {
             continue;
         }

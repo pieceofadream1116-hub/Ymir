@@ -58,6 +58,11 @@ const std::vector<CheatGame> &CheatGames();
 /// @return the index into `CheatGames()`, or -1 when no game matches
 int MatchCheatGame(std::string_view headerTitle);
 
+/// @brief The name of the box art built into the app for a disc (e.g. "bug-too" for covers/bug-too.jpg).
+/// @param[in] headerTitle the game title from the disc header
+/// @return the name without extension, or an empty string when the disc is not one of the built-in games
+std::string BundledCoverName(std::string_view headerTitle);
+
 /// @brief Applies the active codes to the Saturn's memory. Shared by the GUI thread (which sets the codes) and the
 /// emulator thread (which applies them after every frame).
 class CheatEngine {

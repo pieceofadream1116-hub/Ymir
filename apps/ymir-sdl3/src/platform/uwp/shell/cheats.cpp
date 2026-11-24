@@ -99,6 +99,13 @@ const std::vector<CheatGame> &CheatGames() {
                 },
         },
         {
+            .name = "Myst",
+            .version = "USA",
+            .titleKeys = {"MYST"},
+            .excludeKeys = {"MYSTARIA"},
+            .cheats = {}, // no Action Replay codes exist; listed for its built-in cover
+        },
+        {
             .name = "Panzer Dragoon II Zwei",
             .version = "USA",
             .titleKeys = {"PANZERDRAGOON"},
@@ -255,6 +262,26 @@ namespace {
     }
 
 } // namespace
+
+std::string BundledCoverName(std::string_view headerTitle) {
+    const int index = MatchCheatGame(headerTitle);
+    if (index < 0) {
+        return {};
+    }
+    // "Bug Too!" -> "bug-too": the file names under uwp/shell/assets/covers
+    std::string slug;
+    for (const char c : std::string_view{CheatGames()[index].name}) {
+        if (std::isalnum(static_cast<unsigned char>(c))) {
+            slug.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        } else if (!slug.empty() && slug.back() != '-') {
+            slug.push_back('-');
+        }
+    }
+    while (!slug.empty() && slug.back() == '-') {
+        slug.pop_back();
+    }
+    return slug;
+}
 
 int MatchCheatGame(std::string_view headerTitle) {
     const std::string title = Normalize(headerTitle);

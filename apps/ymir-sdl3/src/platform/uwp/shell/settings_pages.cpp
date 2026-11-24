@@ -528,7 +528,9 @@ OverlayScreen Shell::BuildPauseScreen() {
             m_overlay.Push(BuildCheatsScreen());
         },
         [this] {
-            return m_cheatGame >= 0 ? std::string{CheatGames()[m_cheatGame].name} : std::string{"no codes"};
+            return m_cheatGame >= 0 && !CheatGames()[m_cheatGame].cheats.empty()
+                       ? std::string{CheatGames()[m_cheatGame].name}
+                       : std::string{"no codes"};
         }));
     page.rows.push_back(
         OverlayRow::Action("Main menu", "Return to the main menu; the game stays paused.", [this] { ShowMainMenu(); }));
@@ -672,7 +674,7 @@ OverlayScreen Shell::BuildCheatsScreen() {
             }));
     }
 
-    if (m_cheatGame < 0) {
+    if (m_cheatGame < 0 || CheatGames()[m_cheatGame].cheats.empty()) {
         page.rows.push_back(OverlayRow::Info(
             "No codes", [] { return std::string{"-"}; },
             "There are no built-in codes for this disc. Pick a game in Code list if this is one of yours."));

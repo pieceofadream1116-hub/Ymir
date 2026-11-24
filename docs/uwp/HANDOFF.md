@@ -1571,6 +1571,14 @@ deploy nem inicia o app.
 - **Escala inteira** ligada por padrão no UWP (`settings.cpp`, guardado).
 - Não testado no Xbox ainda.
 
+### Sessão 2026-11-24 (2) — capas embutidas
+
+- O usuário relatou que nenhuma capa aparece no Xbox (o download do Libretro/Wikipedia não trouxe nada).
+- 16 capas USA (libretro-thumbnails/Sega_-_Saturn, reduzidas a 512 px, JPEG) embutidas em
+  `uwp/shell/assets/covers/`; `CoverCache::Load()` usa a capa embutida quando não há arquivo na pasta `covers`.
+  O jogo é identificado pelo título do cabeçalho (`BundledCoverName()` em `cheats.cpp`). Myst entrou na lista só pela capa.
+- `CoverCache::kMaxEdge` 256 → 512 para capas nítidas na TV.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
