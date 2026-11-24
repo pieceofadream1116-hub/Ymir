@@ -25,6 +25,8 @@
 #include <ymir/hw/smpc/peripheral/peripheral_defs.hpp>
 #include <ymir/hw/smpc/smpc.hpp>
 #include <ymir/media/cd_interface.hpp>
+#include <ymir/media/saturn_header.hpp>
+#include <ymir/util/string.hpp>
 
 #include <fmt/format.h>
 
@@ -519,6 +521,15 @@ OverlayScreen Shell::BuildPauseScreen() {
     };
 
     page.rows.push_back(OverlayRow::Action("Resume", "Back to the game.", [this] { EnterGame(); }));
+    page.rows.push_back(OverlayRow::Action(
+        "Cheats", "Switch the built-in cheat codes for this game on or off.",
+        [this] {
+            RefreshCheats();
+            m_overlay.Push(BuildCheatsScreen());
+        },
+        [this] {
+            return m_cheatGame >= 0 ? std::string{CheatGames()[m_cheatGame].name} : std::string{"no codes"};
+        }));
     page.rows.push_back(
         OverlayRow::Action("Main menu", "Return to the main menu; the game stays paused.", [this] { ShowMainMenu(); }));
     page.rows.push_back(OverlayRow::Action("Game library", "Open the game library grid; the game stays paused.",
@@ -567,6 +578,136 @@ OverlayScreen Shell::BuildPauseScreen() {
     page.rows.push_back(OverlayRow::Action("Original GUI",
                                            "Switch to the original desktop interface. Press View to return.",
                                            [this] { SwitchToDesktop(); }));
+    screen.pages.push_back(std::move(page));
+    return screen;
+}
+
+// -----------------------------------------------------------------------------
+// Cheats
+
+void Shell::RefreshCheats() {
+    const ymir::media::SaturnHeader &header = m_context.saturn.GetDiscHeader();
+    const std::string product = ::util::TrimWhitespace(header.productNumber);
+    const std::string picked = product.empty() ? std::string{} : m_cheatChoices.GetOverride(product);
+    const auto &games = CheatGames();
+
+    m_cheatGame = -1;
+    m_cheatGameAuto = picked.empty();
+    if (product.empty() || picked == "-") {
+        // No disc, or cheats switched off for this disc
+    } else if (!picked.empty()) {
+        for (std::size_t i = 0; i < games.size(); ++i) {
+            if (picked == games[i].name) {
+                m_cheatGame = static_cast<int>(i);
+                break;
+            }
+        }
+    } else {
+        m_cheatGame = MatchCheatGame(header.gameTitle);
+    }
+
+    std::vector<CheatEngine::Op> ops;
+    if (m_cheatGame >= 0) {
+        const CheatGame &game = games[m_cheatGame];
+        for (const CheatCode &cheat : game.cheats) {
+            if (m_cheatChoices.IsOn(game.name, cheat.name) && !CheatEngine::Parse(cheat.codes, ops)) {
+                devlog::warn<grp::shell>("Invalid cheat code for {} - {}", game.name, cheat.name);
+            }
+        }
+    }
+    devlog::info<grp::shell>("Cheats: {} ({} code lines active)",
+                             m_cheatGame >= 0 ? games[m_cheatGame].name : "none", ops.size());
+    m_cheats.SetActive(std::move(ops));
+}
+
+OverlayScreen Shell::BuildCheatsScreen() {
+    const ymir::media::SaturnHeader &header = m_context.saturn.GetDiscHeader();
+    const std::string product = ::util::TrimWhitespace(header.productNumber);
+    const std::string title = ::util::TrimWhitespace(::util::TranslateSaturnString(header.gameTitle));
+    const std::string disc = fmt::format("{} {} {}", product, ::util::TrimWhitespace(header.version),
+                                         ::util::TrimWhitespace(header.rawCompatAreaCode));
+    const auto &games = CheatGames();
+
+    OverlayScreen screen{.title = "CHEATS", .pages = {}};
+    OverlayPage page{.title = "CODES", .rows = {}};
+
+    page.rows.push_back(OverlayRow::Info(
+        "Disc", [title] { return title.empty() ? std::string{"no disc"} : title; },
+        "The game title written on the disc in the drive."));
+    page.rows.push_back(OverlayRow::Info(
+        "Disc ID", [disc] { return disc; },
+        "Codes only work on the disc they were made for. Region U is the USA, J Japan, E Europe."));
+
+    if (!product.empty()) {
+        // Code list: automatic (from the disc title), one of the games by hand, or off
+        std::vector<std::string> choices;
+        const int autoGame = MatchCheatGame(header.gameTitle);
+        choices.push_back(fmt::format("Automatic ({})", autoGame >= 0 ? games[autoGame].name : "not found"));
+        for (const CheatGame &game : games) {
+            choices.push_back(fmt::format("{} ({})", game.name, game.version));
+        }
+        choices.push_back("Off");
+        const int offIndex = static_cast<int>(choices.size()) - 1;
+        page.rows.push_back(OverlayRow::Choice(
+            "Code list",
+            "Which game's codes to use. Automatic picks them from the disc title; pick by hand if it is wrong.",
+            std::move(choices),
+            [this, product, offIndex] {
+                const std::string picked = m_cheatChoices.GetOverride(product);
+                if (picked.empty()) {
+                    return 0;
+                }
+                if (picked == "-") {
+                    return offIndex;
+                }
+                return m_cheatGame + 1;
+            },
+            [this, product, offIndex](int choice) {
+                m_cheatChoices.SetOverride(product, choice == 0          ? std::string{}
+                                                    : choice == offIndex ? std::string{"-"}
+                                                                         : std::string{CheatGames()[choice - 1].name});
+                m_cheatChoices.Save();
+                RefreshCheats();
+                m_overlay.Replace(BuildCheatsScreen());
+            }));
+    }
+
+    if (m_cheatGame < 0) {
+        page.rows.push_back(OverlayRow::Info(
+            "No codes", [] { return std::string{"-"}; },
+            "There are no built-in codes for this disc. Pick a game in Code list if this is one of yours."));
+    } else {
+        const CheatGame &game = games[m_cheatGame];
+        for (const CheatCode &cheat : game.cheats) {
+            const std::string gameName = game.name;
+            const std::string cheatName = cheat.name;
+            const int group = cheat.group;
+            page.rows.push_back(OverlayRow::Toggle(
+                cheat.name,
+                group != 0 ? "Switch on, then Resume. Only one of this kind can be on at a time."
+                           : "Switch on, then Resume. It works within a second; switch off to undo.",
+                [this, gameName, cheatName] { return m_cheatChoices.IsOn(gameName, cheatName); },
+                [this, gameName, cheatName, group](bool on) {
+                    if (on && group != 0) {
+                        // Exclusive cheats: switch the others of the same kind off
+                        for (const CheatGame &g : CheatGames()) {
+                            if (gameName != g.name) {
+                                continue;
+                            }
+                            for (const CheatCode &other : g.cheats) {
+                                if (other.group == group) {
+                                    m_cheatChoices.Set(gameName, other.name, false);
+                                }
+                            }
+                        }
+                    }
+                    m_cheatChoices.Set(gameName, cheatName, on);
+                    m_cheatChoices.Save();
+                    RefreshCheats();
+                }));
+        }
+    }
+
     screen.pages.push_back(std::move(page));
     return screen;
 }

@@ -67,12 +67,69 @@ namespace {
 Shell::Shell(app::SharedContext &context)
     : m_context(context) {}
 
+namespace {
+
+    /// @brief Copies Saturn BIOS images found on the drives into the profile's IPL ROM folder, so the BIOS is found
+    /// without using the file picker. Looks (not recursively) in the root of every drive, in the usual BIOS folder
+    /// names and in the game library folders, for 512 KiB files that look like a Saturn BIOS. The ROM scan that runs
+    /// next identifies them by their hash, so a wrong guess is simply ignored.
+    void ImportBiosFromDrives(const std::filesystem::path &iplDir, const std::vector<std::filesystem::path> &extra) {
+        constexpr std::uintmax_t kBiosSize = 512 * 1024;
+        std::vector<std::filesystem::path> dirs;
+        for (char drive = 'D'; drive <= 'Z'; ++drive) {
+            const std::filesystem::path root = std::string{drive} + ":\\";
+            for (const char *sub : {"", "BIOS", "Saturn", "Saturn\\BIOS", "Ymir\\BIOS"}) {
+                dirs.push_back(root / sub);
+            }
+        }
+        dirs.insert(dirs.end(), extra.begin(), extra.end());
+
+        std::error_code error{};
+        for (const std::filesystem::path &dir : dirs) {
+            if (!std::filesystem::is_directory(dir, error)) {
+                continue;
+            }
+            for (std::filesystem::directory_iterator it{dir, error}, end; !error && it != end; it.increment(error)) {
+                if (!it->is_regular_file(error) || it->file_size(error) != kBiosSize) {
+                    continue;
+                }
+                std::string name = it->path().filename().string();
+                std::transform(name.begin(), name.end(), name.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                const bool looksLikeBios = name.find("bios") != std::string::npos ||
+                                           name.find("saturn") != std::string::npos ||
+                                           name.find("sega") != std::string::npos ||
+                                           name.find("mpr-") != std::string::npos || name.ends_with(".rom") ||
+                                           name.ends_with(".ic17");
+                if (!looksLikeBios) {
+                    continue;
+                }
+                const std::filesystem::path target = iplDir / it->path().filename();
+                if (std::filesystem::exists(target, error)) {
+                    continue;
+                }
+                std::filesystem::create_directories(iplDir, error);
+                if (std::filesystem::copy_file(it->path(), target, error)) {
+                    devlog::info<grp::shell>("Found a BIOS on the drive: {} (copied to the ROMs folder)",
+                                             it->path().string());
+                }
+                error.clear();
+            }
+            error.clear();
+        }
+    }
+
+} // namespace
+
 void Shell::LoadConfig() {
     m_configPath = m_context.profile.GetPath(app::ProfilePath::Root) / "shell.toml";
+    m_cheatChoices.Load(m_context.profile.GetPath(app::ProfilePath::Root) / "cheats.txt");
     if (!m_config.Load(m_configPath)) {
         // First launch on this console: write the defaults so the file can be inspected through the Device Portal
         SaveConfig();
     }
+    // Runs before the app scans the ROMs folder, so a BIOS on the drive is picked up on this launch
+    ImportBiosFromDrives(m_context.profile.GetPath(app::ProfilePath::IPLROMImages), m_config.libraryFolders);
     devlog::info<grp::shell>("Interface mode: {}", IsActive() ? "shell" : "desktop");
 }
 
@@ -210,6 +267,7 @@ void Shell::EnterGame() {
     m_sessionStarted = true;
     m_gameEnteredTime = m_time;
     m_overlay.CloseAll();
+    RefreshCheats(); // a new disc may be in the drive
     m_music.SetPlaying(false);
 
     // The button that confirmed the choice is still down; make sure the Saturn does not see a stale press
@@ -472,6 +530,7 @@ void Shell::ProcessPickedBios() {
 }
 
 void Shell::RescanBios() {
+    ImportBiosFromDrives(m_context.profile.GetPath(app::ProfilePath::IPLROMImages), m_config.libraryFolders);
     auto &romService = m_context.serviceLocator.GetRequired<app::services::ROMService>();
     romService.ScanIPLROMs();
     if (romService.LoadIPLROM().succeeded) {

@@ -434,6 +434,8 @@ if (Ymir_PLATFORM_UWP)
         src/platform/uwp/shell/audio_cube.hpp
         src/platform/uwp/shell/audio_decoders.cpp
         src/platform/uwp/shell/audio_decoders.hpp
+        src/platform/uwp/shell/cheats.cpp
+        src/platform/uwp/shell/cheats.hpp
         src/platform/uwp/shell/cover_cache.cpp
         src/platform/uwp/shell/cover_cache.hpp
         src/platform/uwp/shell/dot_matrix.cpp

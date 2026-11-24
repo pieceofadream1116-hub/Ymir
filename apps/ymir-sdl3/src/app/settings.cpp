@@ -1119,7 +1119,12 @@ void Settings::ResetToDefaults() {
 
     video.graphicsBackend = gfx::kDefaultBackend;
     video.graphicsAdapter = std::nullopt;
+#if YMIR_PLATFORM_UWP
+    // On the TV, whole-number scaling keeps every Saturn pixel the same size: the sharpest picture
+    video.forceIntegerScaling = true;
+#else
     video.forceIntegerScaling = false;
+#endif
     video.forceAspectRatio = true;
     video.forcedAspect = {4, 3};
     video.rotation = Video::DisplayRotation::Normal;

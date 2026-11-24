@@ -12,11 +12,15 @@ namespace platform::uwp::shell {
 namespace {
 
     /// @brief Panel area on the reference canvas: the sky between the dashboards, leaving the legend visible.
-    constexpr Rect kPanel{{300.0f, 178.0f}, {1320.0f, 670.0f}};
+    /// The menus are sized to be read from the couch on a TV: large text, tall rows.
+    constexpr Rect kPanel{{170.0f, 120.0f}, {1580.0f, 750.0f}};
 
-    constexpr float kRowHeight = 56.0f;
-    constexpr float kRowGap = 6.0f;
-    constexpr float kLabelPitch = 3.2f;
+    constexpr float kRowHeight = 76.0f;
+    constexpr float kRowGap = 8.0f;
+    constexpr float kLabelPitch = 4.2f; // row labels
+    constexpr float kValuePitch = 3.6f; // values on the right of the rows
+    constexpr float kLabelFontSize = 32.0f;
+    constexpr float kHelpFontSize = 30.0f;
 
     constexpr ImU32 kHolo = IM_COL32(90, 220, 255, 255);
 
@@ -226,16 +230,16 @@ void Overlay::Draw(const DrawContext &ctx, bool dimBackground) {
 
         // Header: screen title, then the page tabs with the LB/RB glyphs
         const float padX = ctx.layout.Scale(36.0f);
-        DrawDotText(octx, {panel.pos.x + padX, panel.pos.y + ctx.layout.Scale(24.0f)}, 4.4f, state.screen.title,
+        DrawDotText(octx, {panel.pos.x + padX, panel.pos.y + ctx.layout.Scale(24.0f)}, 5.2f, state.screen.title,
                     IM_COL32(150, 230, 255, 255));
         if (state.screen.pages.size() > 1) {
             float x = panel.pos.x + padX;
-            const float y = panel.pos.y + ctx.layout.Scale(70.0f);
+            const float y = panel.pos.y + ctx.layout.Scale(80.0f);
             DrawGlyph(octx, Glyph::LB, {x + ctx.layout.Scale(24.0f), y + ctx.layout.Scale(10.0f)}, 14.0f);
             x += ctx.layout.Scale(58.0f);
             for (std::size_t i = 0; i < state.screen.pages.size(); ++i) {
                 const std::string &title = state.screen.pages[i].title;
-                const Vec2 size = MeasureDotText(octx, 2.8f, title);
+                const Vec2 size = MeasureDotText(octx, 3.4f, title);
                 const float pad = ctx.layout.Scale(9.0f);
                 const bool selected = i == state.page;
                 if (selected) {
@@ -245,7 +249,7 @@ void Overlay::Draw(const DrawContext &ctx, bool dimBackground) {
                     dl->AddRect(ImVec2(x - pad, y - pad * 0.6f), ImVec2(x + size.x + pad, y + size.y + pad * 0.6f),
                                 Alpha(kHolo, 0.8f), ctx.layout.Scale(4.0f), 0, line);
                 }
-                DrawDotText(octx, {x, y}, 2.8f, title,
+                DrawDotText(octx, {x, y}, 3.4f, title,
                             selected ? IM_COL32(220, 250, 255, 255) : IM_COL32(110, 160, 190, 210));
                 x += size.x + pad * 3.0f;
             }
@@ -253,8 +257,8 @@ void Overlay::Draw(const DrawContext &ctx, bool dimBackground) {
         }
 
         // Rows, in a scrolling child window (or custom page renderer when provided)
-        const float rowsTop = panel.pos.y + ctx.layout.Scale(state.screen.pages.size() > 1 ? 118.0f : 82.0f);
-        const float helpHeight = ctx.layout.Scale(70.0f);
+        const float rowsTop = panel.pos.y + ctx.layout.Scale(state.screen.pages.size() > 1 ? 136.0f : 96.0f);
+        const float helpHeight = ctx.layout.Scale(92.0f);
         const Rect rowsRect{{panel.pos.x + padX, rowsTop},
                             {panel.size.x - padX * 2.0f, panel.pos.y + panel.size.y - helpHeight - rowsTop}};
         if (!state.screen.pages.empty() && state.screen.pages[state.page].customDraw) {
@@ -335,7 +339,7 @@ void Overlay::Draw(const DrawContext &ctx, bool dimBackground) {
                 if (!help.empty()) {
                     ImFont *helpFont =
                         ctx.theme.GetFont() != nullptr ? ctx.theme.GetFont() : imguiData->fonts.sansSerif.regular;
-                    DrawLabel(octx, helpFont, 24.0f,
+                    DrawLabel(octx, helpFont, kHelpFontSize,
                               {panel.pos.x + padX, panel.pos.y + panel.size.y - helpHeight + ctx.layout.Scale(8.0f)},
                               IM_COL32(170, 205, 235, 255), help, panel.size.x - padX * 2.0f);
                 }
@@ -442,13 +446,13 @@ void Overlay::DrawRow(const DrawContext &ctx, State &state, std::size_t index, R
     const float midY = rect.pos.y + rect.size.y * 0.5f;
     float labelX = rect.pos.x + ctx.layout.Scale(24.0f);
     if (!row.icon.empty() && ctx.theme.GetIconFont() != nullptr) {
-        DrawLabelCentered(ctx, ctx.theme.GetIconFont(), 22.0f, {rect.pos.x + ctx.layout.Scale(34.0f), midY},
+        DrawLabelCentered(ctx, ctx.theme.GetIconFont(), 28.0f, {rect.pos.x + ctx.layout.Scale(38.0f), midY},
                           Alpha(row.iconColor, alpha), row.icon);
-        labelX = rect.pos.x + ctx.layout.Scale(64.0f);
+        labelX = rect.pos.x + ctx.layout.Scale(76.0f);
     }
     if (row.useNerdFont && ctx.theme.GetFont() != nullptr) {
-        const Vec2 labelSize = MeasureLabel(ctx, ctx.theme.GetFont(), 24.0f, row.label);
-        DrawLabel(ctx, ctx.theme.GetFont(), 24.0f, {labelX, midY - labelSize.y * 0.5f},
+        const Vec2 labelSize = MeasureLabel(ctx, ctx.theme.GetFont(), kLabelFontSize, row.label);
+        DrawLabel(ctx, ctx.theme.GetFont(), kLabelFontSize, {labelX, midY - labelSize.y * 0.5f},
                   Alpha(IM_COL32(225, 240, 255, 255), alpha), row.label);
     } else {
         const Vec2 labelSize = MeasureDotText(ctx, kLabelPitch, row.label);
@@ -460,16 +464,16 @@ void Overlay::DrawRow(const DrawContext &ctx, State &state, std::size_t index, R
     const float right = rect.pos.x + rect.size.x - ctx.layout.Scale(24.0f);
     const ImU32 valueColor = Alpha(IM_COL32(150, 230, 255, 255), alpha);
     const auto rightText = [&](const std::string &text, ImU32 color) {
-        const Vec2 size = MeasureDotText(ctx, 2.8f, text);
-        DrawDotText(ctx, {right - size.x, midY - size.y * 0.5f}, 2.8f, text, color);
+        const Vec2 size = MeasureDotText(ctx, kValuePitch, text);
+        DrawDotText(ctx, {right - size.x, midY - size.y * 0.5f}, kValuePitch, text, color);
         return size.x;
     };
 
     switch (row.kind) {
     case OverlayRow::Kind::Toggle: {
         const bool on = row.getToggle && row.getToggle();
-        const float w = ctx.layout.Scale(76.0f);
-        const float h = ctx.layout.Scale(32.0f);
+        const float w = ctx.layout.Scale(96.0f);
+        const float h = ctx.layout.Scale(40.0f);
         const ImVec2 t0(right - w, midY - h * 0.5f);
         const ImVec2 t1(right, midY + h * 0.5f);
         dl->AddRectFilled(
@@ -477,8 +481,9 @@ void Overlay::DrawRow(const DrawContext &ctx, State &state, std::size_t index, R
         const float knobX = on ? t1.x - h * 0.5f : t0.x + h * 0.5f;
         dl->AddCircleFilled(ImVec2(knobX, midY), h * 0.38f, Alpha(IM_COL32_WHITE, alpha), 20);
         const char *text = on ? "ON" : "OFF";
-        const Vec2 size = MeasureDotText(ctx, 2.6f, text);
-        DrawDotText(ctx, {t0.x - size.x - ctx.layout.Scale(14.0f), midY - size.y * 0.5f}, 2.6f, text, valueColor);
+        const Vec2 size = MeasureDotText(ctx, kValuePitch, text);
+        DrawDotText(ctx, {t0.x - size.x - ctx.layout.Scale(16.0f), midY - size.y * 0.5f}, kValuePitch, text,
+                    valueColor);
         break;
     }
     case OverlayRow::Kind::Choice: {
@@ -512,8 +517,9 @@ void Overlay::DrawRow(const DrawContext &ctx, State &state, std::size_t index, R
         dl->AddCircleFilled(ImVec2(b0.x + w * std::clamp(t, 0.0f, 1.0f), midY), h * 1.1f, Alpha(IM_COL32_WHITE, alpha),
                             16);
         const std::string text = row.formatValue ? row.formatValue(value) : std::to_string(value);
-        const Vec2 size = MeasureDotText(ctx, 2.8f, text);
-        DrawDotText(ctx, {b0.x - size.x - ctx.layout.Scale(18.0f), midY - size.y * 0.5f}, 2.8f, text, valueColor);
+        const Vec2 size = MeasureDotText(ctx, kValuePitch, text);
+        DrawDotText(ctx, {b0.x - size.x - ctx.layout.Scale(18.0f), midY - size.y * 0.5f}, kValuePitch, text,
+                    valueColor);
         break;
     }
     case OverlayRow::Kind::Action: {
@@ -522,16 +528,16 @@ void Overlay::DrawRow(const DrawContext &ctx, State &state, std::size_t index, R
         dl->AddTriangleFilled(ImVec2(right, midY), ImVec2(right - chevron, midY - chevron),
                               ImVec2(right - chevron, midY + chevron), Alpha(kHolo, (0.5f + 0.5f * focus) * alpha));
         if (row.valueText) {
-            const std::string text = FitDotText(row.valueText(), rect.size.x * 0.55f, ctx.layout.Scale(2.8f));
-            const Vec2 size = MeasureDotText(ctx, 2.8f, text);
-            DrawDotText(ctx, {right - chevron - ctx.layout.Scale(16.0f) - size.x, midY - size.y * 0.5f}, 2.8f, text,
-                        valueColor);
+            const std::string text = FitDotText(row.valueText(), rect.size.x * 0.5f, ctx.layout.Scale(kValuePitch));
+            const Vec2 size = MeasureDotText(ctx, kValuePitch, text);
+            DrawDotText(ctx, {right - chevron - ctx.layout.Scale(16.0f) - size.x, midY - size.y * 0.5f}, kValuePitch,
+                        text, valueColor);
         }
         break;
     }
     case OverlayRow::Kind::Info: {
         if (row.valueText) {
-            rightText(FitDotText(row.valueText(), rect.size.x * 0.6f, ctx.layout.Scale(2.8f)),
+            rightText(FitDotText(row.valueText(), rect.size.x * 0.5f, ctx.layout.Scale(kValuePitch)),
                       Alpha(IM_COL32(170, 200, 225, 255), alpha));
         }
         break;

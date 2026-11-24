@@ -25,6 +25,7 @@ Only compiled when YMIR_PLATFORM_UWP is set.
 */
 
 #include <platform/uwp/shell/audio_cube.hpp>
+#include <platform/uwp/shell/cheats.hpp>
 #include <platform/uwp/shell/cover_cache.hpp>
 #include <platform/uwp/shell/file_system.hpp>
 #include <platform/uwp/shell/game_library.hpp>
@@ -103,6 +104,12 @@ public:
     /// @brief Boots the loaded IPL ROM with the disc tray empty for initial BIOS setup.
     void StartBiosSetup();
 
+    /// @brief Writes the cheats switched on in the pause menu into the Saturn's memory.
+    /// Called by the emulator thread after every frame.
+    void ApplyCheats(ymir::sys::SH2Bus &bus) {
+        m_cheats.Apply(bus);
+    }
+
 private:
     enum class Screen {
         Home,   // the library and the action spheres; the emulation is paused
@@ -148,6 +155,10 @@ private:
     [[nodiscard]] OverlayScreen BuildResetConfirmScreen();
     [[nodiscard]] OverlayScreen BuildPauseScreen();
     [[nodiscard]] OverlayScreen BuildFilePickerScreen();
+    [[nodiscard]] OverlayScreen BuildCheatsScreen();
+
+    // Cheats (settings_pages.cpp)
+    void RefreshCheats();
 
     // Per-frame
     [[nodiscard]] HomeModel BuildHomeModel(bool inputEnabled);
@@ -199,6 +210,12 @@ private:
     std::size_t m_pauseSlot = 0; // save state slot selected in the pause menu
 
     std::atomic_bool m_discLoaded{false};
+
+    // Built-in cheats: the codes for the disc in the drive, applied by the emulator thread
+    CheatEngine m_cheats;
+    CheatChoices m_cheatChoices;
+    int m_cheatGame = -1;       // index into CheatGames() for the disc in the drive, -1 for none
+    bool m_cheatGameAuto = true; // the game was found from the disc title rather than picked by hand
 
     std::optional<std::uint64_t> m_viewDownTimestamp; // desktop mode: when View was pressed
 

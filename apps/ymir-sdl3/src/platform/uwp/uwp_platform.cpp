@@ -95,6 +95,21 @@ std::filesystem::path FindExternalProfilePath() {
             return candidate;
         }
     }
+
+    // No Ymir folder yet: create it on the first external drive the app can write to, so saves, save states and
+    // settings land on the external drive from the very first launch without preparing the drive on a PC.
+    for (char drive = 'D'; drive <= 'Z'; ++drive) {
+        const std::filesystem::path root = std::string{drive} + ":\\";
+        if (!IsWritableDirectory(root)) {
+            continue;
+        }
+        const std::filesystem::path candidate = root / kExternalProfileFolderName;
+        std::error_code error{};
+        std::filesystem::create_directories(candidate, error);
+        if (!error && IsWritableDirectory(candidate)) {
+            return candidate;
+        }
+    }
     return {};
 }
 

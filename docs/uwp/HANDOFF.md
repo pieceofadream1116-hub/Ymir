@@ -1557,6 +1557,20 @@ deploy nem inicia o app.
 
 ---
 
+### Sessão 2026-11-24 — fork pieceofadream1116-hub: cheats embutidos, menus maiores, perfil no drive externo
+
+- **Cheats embutidos** (`platform/uwp/shell/cheats.{hpp,cpp}`): lista de códigos Action Replay (discos USA) para 15 jogos,
+  aplicada pela thread do emulador depois de cada `RunFrame()` via `SH2Bus::Poke` (hook guardado em `app.cpp`).
+  Tipos 0/1 (16 bits), 3 (8 bits), D (condicional); master codes F/B são ignorados de propósito (não são necessários
+  sem o cartucho, e são a causa comum de códigos que "não funcionam" em emuladores). Jogo detectado pelo título do
+  cabeçalho do disco; o menu "Cheats" na pausa permite escolher a lista à mão. Escolhas salvas em `<perfil>\cheats.txt`.
+- **Menus maiores** para TV: `overlay.cpp` com painel maior, linhas de 76 px e textos maiores.
+- **Perfil no drive externo**: `FindExternalProfilePath()` cria `X:\Ymir` no primeiro drive gravável se ainda não existir.
+- **BIOS automática**: `Shell::LoadConfig()` copia arquivos de 512 KiB com cara de BIOS (raiz dos drives, pastas BIOS/Saturn,
+  pastas da biblioteca) para `roms\ipl` antes da varredura; a varredura identifica pelo hash.
+- **Escala inteira** ligada por padrão no UWP (`settings.cpp`, guardado).
+- Não testado no Xbox ainda.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):

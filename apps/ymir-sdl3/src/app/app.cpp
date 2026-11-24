@@ -4214,6 +4214,10 @@ void App::EmulatorThread() {
 
             if (doRunFrame) [[likely]] {
                 m_context.saturn.instance->RunFrame();
+#if YMIR_PLATFORM_UWP
+                // Built-in cheats of the Xbox shell, written into RAM after every frame like an Action Replay does
+                m_shell.ApplyCheats(m_context.saturn.instance->mainBus);
+#endif
             }
 
             if (rewindEnabled && !m_context.rewinding) {
