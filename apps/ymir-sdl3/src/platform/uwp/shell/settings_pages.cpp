@@ -700,6 +700,19 @@ OverlayScreen Shell::BuildCheatsScreen() {
             }));
     }
 
+    // Solar Eclipse: the raw numbers behind the two energy bars, to read out when the energy cheat misbehaves
+    if (m_cheatGame >= 0 && std::string_view{games[m_cheatGame].name} == "Solar Eclipse") {
+        page.rows.push_back(OverlayRow::Info(
+            "Energy numbers",
+            [this] {
+                auto &bus = m_context.saturn.instance->mainBus;
+                return fmt::format("{:04X} {:04X} / {:04X} {:04X}", bus.Peek<uint16>(0x002652B8),
+                                   bus.Peek<uint16>(0x002652BA), bus.Peek<uint16>(0x00265278),
+                                   bus.Peek<uint16>(0x0026527A));
+            },
+            "The game's own numbers for the two bars. If the full energy cheat stops working, read these out."));
+    }
+
     // The game's own button-code cheats, entered by the app on the pause screen
     if (m_cheatGame >= 0) {
         for (const ButtonCode &code : games[m_cheatGame].buttonCodes) {

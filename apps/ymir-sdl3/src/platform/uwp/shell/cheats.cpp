@@ -106,7 +106,8 @@ const std::vector<CheatGame> &CheatGames() {
             .name = "Myst",
             .version = "USA",
             .titleKeys = {"MYST"},
-            .excludeKeys = {"MYSTARIA"},
+            // Riven's full title is "Riven: The Sequel to Myst"; it has its own cover
+            .excludeKeys = {"MYSTARIA", "RIVEN", "SEQUEL"},
             .cheats = {}, // no Action Replay codes exist; listed for its built-in cover
         },
         // Games without codes, listed for their built-in covers
@@ -182,7 +183,9 @@ const std::vector<CheatGame> &CheatGames() {
                     // switch and a level select. Patch documented by 32bits ("Under the microscope: Solar Eclipse"):
                     // 0020F214 = 2300 and the 32-bit word at 0020F280 = 0023CA78 (the flag address), then a nonzero
                     // flag at 0023CA78
-                    {"Debug menu (Invulnerability, level select)", "1020F214 2300 1020F280 0023 1020F282 CA78 3023CA78 0001"},
+                    // The flag at 0023CA78 is written ONCE (type C): written every frame it kept the menu from closing,
+                    // which froze the game when leaving it. Switch the cheat off and on to open the menu again
+                    {"Debug menu (Invulnerability, level select)", "1020F214 2300 1020F280 0023 1020F282 CA78 C023CA78 0001"},
                 },
             // The game's own pause-screen codes (Crystal Dynamics), from the cheat guides
             .buttonCodes =
@@ -536,6 +539,7 @@ bool CheatEngine::Parse(std::string_view codes, std::vector<Op> &out) {
         case 0x3: out.push_back({Op::Kind::Write8, address, value}); break;
         case 0xD: out.push_back({Op::Kind::IfEqual16, address, value}); break;
         case 0xE: out.push_back({Op::Kind::HoldHighest16, address, value}); break;
+        case 0xC: out.push_back({Op::Kind::WriteOnce8, address, value}); break;
         case 0xB:
         case 0xF: break; // master code: not needed, see cheats.hpp
         default: return false;
@@ -549,7 +553,8 @@ void CheatEngine::SetActive(std::vector<Op> ops) {
     // Keep what the "hold highest" codes have learned: the list is rebuilt every time the game resumes, and the bar
     // may not be full at that moment
     for (Op &op : ops) {
-        if (op.kind != Op::Kind::HoldHighest16) {
+        // Also keep "written once" flags written, so they are not written again on every resume
+        if (op.kind != Op::Kind::HoldHighest16 && op.kind != Op::Kind::WriteOnce8) {
             continue;
         }
         for (const Op &old : m_ops) {
@@ -577,15 +582,30 @@ void CheatEngine::Apply(ymir::sys::SH2Bus &bus) {
         case Op::Kind::IfEqual16: skipNext = bus.Peek<uint16>(op.address) != op.value; break;
         case Op::Kind::HoldHighest16: {
             const uint16 now = bus.Peek<uint16>(op.address);
-            if (!op.seen || now > op.highest) {
+            // Learn only plausible values: never a negative one (top bit set), and never a sudden jump to more than
+            // four times the learned value, which is the memory being reused for something else (a level loading).
+            // Holding such a value showed the bars empty or red
+            const bool plausible = (now & 0x8000) == 0;
+            if (!op.seen) {
+                if (!plausible || now == 0) {
+                    break;
+                }
                 op.highest = now;
                 op.seen = true;
+            } else if (now > op.highest && plausible && now <= static_cast<uint32>(op.highest) * 4u) {
+                op.highest = now;
             }
             if (now != op.highest) {
                 bus.Poke<uint16>(op.address, op.highest);
             }
             break;
         }
+        case Op::Kind::WriteOnce8:
+            if (!op.seen) {
+                bus.Poke<uint8>(op.address, static_cast<uint8>(op.value));
+                op.seen = true;
+            }
+            break;
         }
     }
 }

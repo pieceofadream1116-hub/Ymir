@@ -1656,6 +1656,16 @@ deploy nem inicia o app.
 - `uwp.yml`: job `latest` (só em `uwp/frank`) recria a release `latest` com `YmirSaturn.msix`, o `.appx` do VCLibs e
   o `.cer`, sem zip e com links fixos.
 
+### Sessão 2026-11-24 (12) — teste do 0.4.2.13 e correções
+
+- Testado pelo usuário: **Full energy on both bars** funciona no começo, depois as barras caem; o menu de debug abre e a
+  invulnerabilidade liga, mas o jogo congela ao sair do menu, e um "golpe grande" ainda tira energia; Riven mostra a
+  capa do Myst.
+- Correções: a flag do menu de debug (0023CA78) agora é escrita uma vez só (novo tipo interno `C`), pois escrita a cada
+  quadro o menu não fechava; `HoldHighest16` ignora valores implausíveis (bit alto ligado, ou salto > 4x — memória
+  reaproveitada ao carregar fase); Myst exclui "RIVEN"/"SEQUEL"; linha **Energy numbers** no menu Cheats do Solar
+  Eclipse mostra os valores crus (2652B8/BA, 265278/7A) para diagnóstico.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
