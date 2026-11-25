@@ -530,9 +530,13 @@ std::unique_ptr<CoverCache::Cover> CoverCache::Load(app::services::GraphicsServi
     // while a downloaded file can be a wrong guess. Files in the covers folder are used for every other game.
     std::vector<std::pair<std::string, std::optional<std::string>>> sources;
     // Matched by the disc title, or by the file name when the title is unusual
-    std::string bundled = BundledCoverName(game.title);
+    std::string bundled = BundledCoverName(game.productCode, game.title);
     if (bundled.empty()) {
         bundled = BundledCoverName(ToUtf8(game.path.stem()));
+    }
+    if (bundled.empty()) {
+        devlog::info<grp::shell>("No built-in cover for \"{}\" ({}, {})", game.title, game.productCode,
+                                  ToUtf8(game.path.filename()));
     }
     if (!bundled.empty()) {
         try {

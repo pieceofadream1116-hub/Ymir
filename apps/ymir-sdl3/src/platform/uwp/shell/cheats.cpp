@@ -303,7 +303,11 @@ namespace {
 } // namespace
 
 std::string BundledCoverName(std::string_view headerTitle) {
-    const int index = MatchCheatGame(headerTitle);
+    return BundledCoverName(std::string_view{}, headerTitle);
+}
+
+std::string BundledCoverName(std::string_view productNumber, std::string_view headerTitle) {
+    const int index = MatchCheatGame(productNumber, headerTitle);
     if (index < 0) {
         return {};
     }
@@ -320,6 +324,128 @@ std::string BundledCoverName(std::string_view headerTitle) {
         slug.pop_back();
     }
     return slug;
+}
+
+int MatchCheatGameBySerial(std::string_view productNumber) {
+    // Product numbers of every release of the listed games (Redump, via libretro-database), all regions and discs
+    static const std::vector<std::pair<const char *, const char *>> kSerials{
+        {"0081052-50B", "Virtua Cop 2"},
+        {"191x81", "Clockwork Knight 2"},
+        {"81004", "Bug!"},
+        {"81005", "Virtua Fighter"},
+        {"81007", "Clockwork Knight"},
+        {"81009", "Panzer Dragoon"},
+        {"81014", "Virtua Fighter 2"},
+        {"81015", "Virtua Cop"},
+        {"81016", "Mr. Bones"},
+        {"81022", "Panzer Dragoon II Zwei"},
+        {"81022-50", "Panzer Dragoon II Zwei"},
+        {"81023", "Virtua Fighter Remix"},
+        {"81026", "Virtua Cop"},
+        {"81027", "Virtua Fighter Remix"},
+        {"81028", "Virtua Fighter Remix"},
+        {"81036", "Clockwork Knight 2"},
+        {"81040", "Bug Too!"},
+        {"81043", "Virtua Cop 2"},
+        {"81052", "Virtua Cop 2"},
+        {"81200", "Daytona USA"},
+        {"81207", "Sega Rally Championship"},
+        {"81213", "Daytona USA Championship Circuit Edition"},
+        {"81215", "Sega Rally Championship"},
+        {"81218", "Daytona USA Championship Circuit Edition"},
+        {"81608", "Sega Rally Championship"},
+        {"DGS-9004", "Clockwork Knight"},
+        {"GS-7103", "Virtua Fighter Remix"},
+        {"GS-9001", "Virtua Fighter"},
+        {"GS-9004", "Clockwork Knight"},
+        {"GS-9013", "Daytona USA"},
+        {"GS-9039", "Virtua Fighter Remix"},
+        {"GS-9047", "Sega Rally Championship"},
+        {"GS-9049", "Panzer Dragoon II Zwei"},
+        {"GS-9060", "Virtua Cop"},
+        {"GS-9063", "Bug!"},
+        {"GS-9079", "Virtua Fighter 2"},
+        {"GS-9097", "Virtua Cop 2"},
+        {"GS-9100", "Daytona USA Championship Circuit Edition"},
+        {"GS-9116", "Sega Rally Championship"},
+        {"GS-9127", "Mr. Bones"},
+        {"GS-9128", "Bug Too!"},
+        {"GS-9146", "Virtua Fighter 2"},
+        {"GS-9149", "Sega Rally Championship"},
+        {"GS-9154", "Virtua Cop 2"},
+        {"GS-9503J", "Virtua Fighter Remix"},
+        {"GS-9506J", "Sega Rally Championship"},
+        {"GS-9507J", "Virtua Fighter 2"},
+        {"GS-9614J", "Daytona USA Championship Circuit Edition"},
+        {"MK-81014-08", "Virtua Fighter 2"},
+        {"MK-81023-08", "Virtua Fighter Remix"},
+        {"MK-81207-08", "Sega Rally Championship"},
+        {"MK-81213-08", "Daytona USA Championship Circuit Edition"},
+        {"MK81004-50", "Bug!"},
+        {"MK81005-50", "Virtua Fighter"},
+        {"MK81007-50", "Clockwork Knight"},
+        {"MK81009-50", "Panzer Dragoon"},
+        {"MK81014-50", "Virtua Fighter 2"},
+        {"MK81015-50", "Virtua Cop"},
+        {"MK81016-50", "Mr. Bones"},
+        {"MK81021-50", "Clockwork Knight 2"},
+        {"MK81040-50", "Bug Too!"},
+        {"MK81043-50", "Virtua Cop 2"},
+        {"MK81081-50", "Myst"},
+        {"MK81083-50", "Virtua Fighter Remix"},
+        {"MK81200-50", "Daytona USA"},
+        {"MK81207-50", "Sega Rally Championship"},
+        {"MK81213-50", "Daytona USA Championship Circuit Edition"},
+        {"SGS-9047", "Sega Rally Championship"},
+        {"SGS-9079", "Virtua Fighter 2"},
+        {"SOE-000-DEMO4", "Virtua Cop 2"},
+        {"T-10609G", "Road Rash"},
+        {"T-1222H", "Street Fighter Collection"},
+        {"T-1223G", "Street Fighter Collection"},
+        {"T-1501G", "Myst"},
+        {"T-15911H", "Solar Eclipse"},
+        {"T-26801H-08", "Myst"},
+        {"T-26801H-16", "Myst"},
+        {"T-5008H", "Road Rash"},
+        {"T-5008H-50", "Road Rash"},
+        {"T-7001H", "Spot Goes to Hollywood"},
+        {"T-7001H-50", "Spot Goes to Hollywood"},
+        {"T-7014G", "Spot Goes to Hollywood"},
+        {"T-7033H-50", "Street Fighter Collection"},
+        {"T-8101H", "Myst"},
+        {"T-8120G", "WWF In Your House"},
+        {"T-8126H", "WWF In Your House"},
+        {"T-8126H-50", "WWF In Your House"},
+    };
+    // Compare letters and digits only, without the "MK" prefix of Sega's own numbers: "MK-81022" == "81022"
+    const auto key = [](std::string_view text) {
+        std::string out = Normalize(text);
+        if (out.starts_with("MK")) {
+            out.erase(0, 2);
+        }
+        return out;
+    };
+    const std::string wanted = key(productNumber);
+    if (wanted.empty()) {
+        return -1;
+    }
+    const auto &games = CheatGames();
+    for (const auto &[serial, name] : kSerials) {
+        if (key(serial) != wanted) {
+            continue;
+        }
+        for (std::size_t i = 0; i < games.size(); ++i) {
+            if (std::string_view{games[i].name} == name) {
+                return static_cast<int>(i);
+            }
+        }
+    }
+    return -1;
+}
+
+int MatchCheatGame(std::string_view productNumber, std::string_view headerTitle) {
+    const int bySerial = MatchCheatGameBySerial(productNumber);
+    return bySerial >= 0 ? bySerial : MatchCheatGame(headerTitle);
 }
 
 int MatchCheatGame(std::string_view headerTitle) {

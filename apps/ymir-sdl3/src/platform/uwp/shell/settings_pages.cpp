@@ -613,7 +613,7 @@ void Shell::RefreshCheats() {
             }
         }
     } else {
-        m_cheatGame = MatchCheatGame(header.gameTitle);
+        m_cheatGame = MatchCheatGame(header.productNumber, header.gameTitle);
     }
 
     m_cheatKey = m_cheatGame >= 0 ? std::string{games[m_cheatGame].name}
@@ -662,7 +662,7 @@ OverlayScreen Shell::BuildCheatsScreen() {
     if (!product.empty()) {
         // Code list: automatic (from the disc title), one of the games by hand, or off
         std::vector<std::string> choices;
-        const int autoGame = MatchCheatGame(header.gameTitle);
+        const int autoGame = MatchCheatGame(header.productNumber, header.gameTitle);
         choices.push_back(fmt::format("Automatic ({})", autoGame >= 0 ? games[autoGame].name : "not found"));
         for (const CheatGame &game : games) {
             choices.push_back(fmt::format("{} ({})", game.name, game.version));

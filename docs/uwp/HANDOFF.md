@@ -1627,6 +1627,13 @@ deploy nem inicia o app.
   detectável; o texto de ajuda pede para trocar antes.
 - O código "Unlimited energy" do guia foi marcado como "does not work on all discs" (não funciona no T-15911H V1.000).
 
+### Sessão 2026-11-24 (9) — capas por número de produto
+
+- O usuário relatou capas faltando (Panzer Dragoon II, Myst, disco 2). As capas embutidas agora casam primeiro pelo
+  **número de produto** do cabeçalho (tabela de 87 seriais de todas as regiões/discos, da lista Redump do
+  libretro-database), depois pelo título e pelo nome do arquivo. Os cheats usam a mesma busca. Jogos sem capa embutida
+  aparecem no log ("No built-in cover for ...").
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
