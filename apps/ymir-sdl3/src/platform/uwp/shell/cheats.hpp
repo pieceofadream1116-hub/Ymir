@@ -14,6 +14,8 @@ Supported code types (the first hex digit of the address word):
 - `1` and `0`: write a 16-bit value (`0` is used by the "NOP patch" codes, value `0009`)
 - `3`: write an 8-bit value (the low byte of the value word)
 - `D`: only apply the next code when the 16-bit value at the address equals the value word
+- `E` (this app's own, not an Action Replay type): hold the 16-bit value at the highest it has been since the cheat was
+  switched on. For bars whose full value differs between discs: switch it on while the bar is full and it stays full
 - `F` and `B`: master code lines, ignored
 
 Only compiled when YMIR_PLATFORM_UWP is set.
@@ -123,10 +125,12 @@ class CheatEngine {
 public:
     /// @brief One parsed code line.
     struct Op {
-        enum class Kind { Write8, Write16, IfEqual16 };
+        enum class Kind { Write8, Write16, IfEqual16, HoldHighest16 };
         Kind kind;
         uint32 address;
         uint16 value;
+        uint16 highest = 0; // HoldHighest16: the highest value seen so far
+        bool seen = false;
     };
 
     /// @brief Parses Action Replay codes.

@@ -51,6 +51,9 @@ bool ShellConfig::Load(const std::filesystem::path &path) {
     if (auto opt = data["Shell"]["SharpPixels"].value<bool>()) {
         sharpPixels = *opt;
     }
+    if (auto opt = data["Shell"]["SmoothPicture"].value<bool>()) {
+        smoothPicture = *opt;
+    }
     if (auto opt = data["Shell"]["WizardCompleted"].value<bool>()) {
         wizardCompleted = *opt;
     }
@@ -73,6 +76,7 @@ bool ShellConfig::Save(const std::filesystem::path &path) const {
         {"SafeArea", static_cast<double>(safeArea)},
         {"Scanlines", scanlines},
         {"SharpPixels", sharpPixels},
+        {"SmoothPicture", smoothPicture},
         {"WizardCompleted", wizardCompleted},
     };
     toml::table musicTbl{

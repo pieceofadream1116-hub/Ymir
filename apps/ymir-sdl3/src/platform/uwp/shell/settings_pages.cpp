@@ -169,6 +169,13 @@ OverlayScreen Shell::BuildSettingsScreen() {
                 SaveConfig();
             }));
         page.rows.push_back(OverlayRow::Toggle(
+            "Smooth picture", "Softens the whole picture. Makes blocky video clips (like faces) look cleaner.",
+            [this] { return m_config.smoothPicture; },
+            [this](bool value) {
+                m_config.smoothPicture = value;
+                SaveConfig();
+            }));
+        page.rows.push_back(OverlayRow::Toggle(
             "Deinterlace", "Render interlaced high-resolution modes as progressive video. Costs performance.",
             [&settings] { return settings.video.enhancements.deinterlace.Get(); },
             [&settings](bool value) {

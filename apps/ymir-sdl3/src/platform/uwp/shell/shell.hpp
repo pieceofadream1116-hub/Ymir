@@ -110,7 +110,12 @@ public:
 
     /// @brief Whether the game picture is drawn with crisp, unsmoothed pixels (the "Sharp pixels" setting).
     [[nodiscard]] bool SharpPixels() const {
-        return m_config.sharpPixels;
+        return m_config.sharpPixels && !m_config.smoothPicture;
+    }
+
+    /// @brief Whether the game picture is stretched with full smoothing (the "Smooth picture" setting).
+    [[nodiscard]] bool SmoothPicture() const {
+        return m_config.smoothPicture;
     }
 
 private:

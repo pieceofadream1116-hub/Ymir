@@ -1644,6 +1644,18 @@ deploy nem inicia o app.
   e grava códigos de 8 bits (tipo 3).
 - `ButtonMacro`: tempos mais longos (10 quadros apertado/solto, 60 de espera).
 
+### Sessão 2026-11-24 (11) — energia cheia, capas Saga/Riven, imagem suave, release "latest"
+
+- Solar Eclipse: o código do guia funciona mas segura as duas barras no vermelho (0069 não é "cheio" neste disco).
+  Novo tipo interno `E` (não é Action Replay): segura o valor de 16 bits no maior valor já visto; cheat
+  **Full energy on both bars (switch on when FULL)** = `E02652B8 0000 E0265278 0000`. O valor aprendido sobrevive ao
+  `SetActive` (o menu reconstrói a lista ao voltar ao jogo).
+- O localizador automático disse "locked" mas não segurou a energia; o usuário apagou o código.
+- Capas embutidas: Panzer Dragoon Saga (USA, todos os discos) e Riven (Europa), com seriais de todas as regiões.
+- Nova opção **Smooth picture** (VIDEO): copia o framebuffer no tamanho nativo e estica com filtro linear.
+- `uwp.yml`: job `latest` (só em `uwp/frank`) recria a release `latest` com `YmirSaturn.msix`, o `.appx` do VCLibs e
+  o `.cer`, sem zip e com links fixos.
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):

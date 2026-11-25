@@ -47,6 +47,10 @@ struct ShellConfig {
     /// Saturn pixel stays crisp. Off uses the smoother sharp-bilinear scaling of desktop Ymir.
     bool sharpPixels = true;
 
+    /// @brief Whether the game picture is stretched with full smoothing instead (softer; makes the low-quality video
+    /// clips of many games look cleaner). Takes priority over sharpPixels.
+    bool smoothPicture = false;
+
     /// @brief Whether the initial Welcome / Setup Wizard has been completed.
     bool wizardCompleted = false;
 

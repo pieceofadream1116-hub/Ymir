@@ -1195,7 +1195,14 @@ void App::RunEmulator() {
 #if YMIR_PLATFORM_UWP
         sharpDispWidth = 0.0f;
         sharpDispHeight = 0.0f;
-        if (m_shell.SharpPixels()) {
+        if (m_shell.SmoothPicture()) {
+            // "Smooth picture": copy the framebuffer at its native size; the final draw stretches it with linear
+            // filtering, which softens blocky video
+            sharpDispWidth = (float)screen.width;
+            sharpDispHeight = (float)screen.height;
+            dstRect.w = sharpDispWidth;
+            dstRect.h = sharpDispHeight;
+        } else if (m_shell.SharpPixels()) {
             // The texture is at least kMaxResH*fbScale wide, which always covers the target size
             sharpDispWidth = std::round((float)targetWidth);
             sharpDispHeight = std::round((float)targetHeight);

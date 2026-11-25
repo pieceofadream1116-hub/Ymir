@@ -127,6 +127,16 @@ const std::vector<CheatGame> &CheatGames() {
          .excludeKeys = {},
          .cheats = {}},
         {.name = "WWF In Your House", .version = "USA", .titleKeys = {"WWF"}, .excludeKeys = {}, .cheats = {}},
+        {.name = "Panzer Dragoon Saga",
+         .version = "USA",
+         .titleKeys = {"PANZERDRAGOON", "SAGA"},
+         .excludeKeys = {},
+         .cheats = {}},
+        {.name = "Riven - The Sequel to Myst",
+         .version = "Europe",
+         .titleKeys = {"RIVEN"},
+         .excludeKeys = {},
+         .cheats = {}},
         {
             .name = "Panzer Dragoon II Zwei",
             .version = "USA",
@@ -163,7 +173,11 @@ const std::vector<CheatGame> &CheatGames() {
                 {
                     {"Unlimited lives and missiles", "10265374 0909"},
                     // Has no effect on the USA disc T-15911H V1.000 (tested by the user); the code finder can make one
-                    {"Unlimited energy (does not work on all discs)", "102652B8 0069 10265278 0069"},
+                    // The guide's code (102652B8 0069 10265278 0069) holds both bars in the red on the user's disc
+                    // (T-15911H V1.000): 0069 is not "full" there. These hold both bars at the highest value they
+                    // reach instead, so switching them on while the bars are full keeps them full green
+                    {"Full energy on both bars (switch on when FULL)", "E02652B8 0000 E0265278 0000"},
+                    {"Energy from the guide (holds bars in the red)", "102652B8 0069 10265278 0069"},
                     // The game's hidden debug menu, opened from its own pause screen; it has an Invulnerability
                     // switch and a level select. Patch documented by 32bits ("Under the microscope: Solar Eclipse"):
                     // 0020F214 = 2300 and the 32-bit word at 0020F280 = 0023CA78 (the flag address), then a nonzero
@@ -337,6 +351,14 @@ int MatchCheatGameBySerial(std::string_view productNumber) {
         {"0081052-50B", "Virtua Cop 2"},
         {"191x81", "Clockwork Knight 2"},
         {"81004", "Bug!"},
+        {"81307", "Panzer Dragoon Saga"},
+        {"MK81307-50", "Panzer Dragoon Saga"},
+        {"700-0012-PM", "Panzer Dragoon Saga"},
+        {"GS-9076", "Panzer Dragoon Saga"},
+        {"MK81801-50", "Riven - The Sequel to Myst"},
+        {"MK-81801-45", "Riven - The Sequel to Myst"},
+        {"191546", "Riven - The Sequel to Myst"},
+        {"T-35503G", "Riven - The Sequel to Myst"},
         {"81005", "Virtua Fighter"},
         {"81007", "Clockwork Knight"},
         {"81009", "Panzer Dragoon"},
@@ -513,6 +535,7 @@ bool CheatEngine::Parse(std::string_view codes, std::vector<Op> &out) {
         case 0x1: out.push_back({Op::Kind::Write16, address, value}); break;
         case 0x3: out.push_back({Op::Kind::Write8, address, value}); break;
         case 0xD: out.push_back({Op::Kind::IfEqual16, address, value}); break;
+        case 0xE: out.push_back({Op::Kind::HoldHighest16, address, value}); break;
         case 0xB:
         case 0xF: break; // master code: not needed, see cheats.hpp
         default: return false;
@@ -523,13 +546,27 @@ bool CheatEngine::Parse(std::string_view codes, std::vector<Op> &out) {
 
 void CheatEngine::SetActive(std::vector<Op> ops) {
     std::lock_guard lock{m_mutex};
+    // Keep what the "hold highest" codes have learned: the list is rebuilt every time the game resumes, and the bar
+    // may not be full at that moment
+    for (Op &op : ops) {
+        if (op.kind != Op::Kind::HoldHighest16) {
+            continue;
+        }
+        for (const Op &old : m_ops) {
+            if (old.kind == op.kind && old.address == op.address && old.seen) {
+                op.highest = old.highest;
+                op.seen = true;
+                break;
+            }
+        }
+    }
     m_ops = std::move(ops);
 }
 
 void CheatEngine::Apply(ymir::sys::SH2Bus &bus) {
     std::lock_guard lock{m_mutex};
     bool skipNext = false;
-    for (const Op &op : m_ops) {
+    for (Op &op : m_ops) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -538,6 +575,17 @@ void CheatEngine::Apply(ymir::sys::SH2Bus &bus) {
         case Op::Kind::Write16: bus.Poke<uint16>(op.address, op.value); break;
         case Op::Kind::Write8: bus.Poke<uint8>(op.address, static_cast<uint8>(op.value)); break;
         case Op::Kind::IfEqual16: skipNext = bus.Peek<uint16>(op.address) != op.value; break;
+        case Op::Kind::HoldHighest16: {
+            const uint16 now = bus.Peek<uint16>(op.address);
+            if (!op.seen || now > op.highest) {
+                op.highest = now;
+                op.seen = true;
+            }
+            if (now != op.highest) {
+                bus.Poke<uint16>(op.address, op.highest);
+            }
+            break;
+        }
         }
     }
 }
