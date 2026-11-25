@@ -164,6 +164,11 @@ const std::vector<CheatGame> &CheatGames() {
                     {"Unlimited lives and missiles", "10265374 0909"},
                     // Has no effect on the USA disc T-15911H V1.000 (tested by the user); the code finder can make one
                     {"Unlimited energy (does not work on all discs)", "102652B8 0069 10265278 0069"},
+                    // The game's hidden debug menu, opened from its own pause screen; it has an Invulnerability
+                    // switch and a level select. Patch documented by 32bits ("Under the microscope: Solar Eclipse"):
+                    // 0020F214 = 2300 and the 32-bit word at 0020F280 = 0023CA78 (the flag address), then a nonzero
+                    // flag at 0023CA78
+                    {"Debug menu (Invulnerability, level select)", "1020F214 2300 1020F280 0023 1020F282 CA78 3023CA78 0001"},
                 },
             // The game's own pause-screen codes (Crystal Dynamics), from the cheat guides
             .buttonCodes =
@@ -751,9 +756,9 @@ void AutoFinder::Snapshot(ymir::sys::SH2Bus &bus) {
     m_addresses.clear();
     m_first.clear();
     for (const auto &[base, size] : kWorkRam) {
-        for (uint32 offset = 0; offset < size; offset += 2) {
+        for (uint32 offset = 0; offset < size; ++offset) { // every byte: energy is often a single byte
             m_addresses.push_back(base + offset);
-            m_first.push_back(bus.Peek<uint16>(base + offset));
+            m_first.push_back(bus.Peek<uint8>(base + offset));
         }
     }
     m_ref = m_first;
@@ -791,7 +796,7 @@ void AutoFinder::Step(ymir::sys::SH2Bus &bus) {
     if (hit) {
         // Keep the values that went down since the last press
         for (std::size_t i = 0; i < m_addresses.size(); ++i) {
-            const uint16 now = bus.Peek<uint16>(m_addresses[i]);
+            const uint8 now = bus.Peek<uint8>(m_addresses[i]);
             if (now < m_ref[i]) {
                 m_addresses[kept] = m_addresses[i];
                 m_first[kept] = m_first[i];
@@ -806,7 +811,7 @@ void AutoFinder::Step(ymir::sys::SH2Bus &bus) {
         // While playing: energy does not go up, and it falls only when hit (at most once before the press)
         m_frames = 0;
         for (std::size_t i = 0; i < m_addresses.size(); ++i) {
-            const uint16 now = bus.Peek<uint16>(m_addresses[i]);
+            const uint8 now = bus.Peek<uint8>(m_addresses[i]);
             if (now > m_last[i]) {
                 continue;
             }
@@ -838,7 +843,7 @@ void AutoFinder::Step(ymir::sys::SH2Bus &bus) {
         std::string codes;
         char line[24];
         for (std::size_t i = 0; i < kept; ++i) {
-            std::snprintf(line, sizeof(line), "%s1%07X %04X", codes.empty() ? "" : " ", m_addresses[i] & 0x0FFF'FFFF,
+            std::snprintf(line, sizeof(line), "%s3%07X 00%02X", codes.empty() ? "" : " ", m_addresses[i] & 0x0FFF'FFFF,
                           m_first[i]);
             codes += line;
         }
@@ -904,9 +909,9 @@ namespace {
     }
 
     // Timing in frames (60 per second): long enough for every game to see each press
-    constexpr int kHoldFrames = 6;
-    constexpr int kGapFrames = 6;
-    constexpr int kSettleFrames = 30; // after resuming from the app's menu, and after pausing the game
+    constexpr int kHoldFrames = 10;
+    constexpr int kGapFrames = 10;
+    constexpr int kSettleFrames = 60; // after resuming from the app's menu, and after pausing the game
 } // namespace
 
 bool ButtonMacro::Start(std::string_view sequence, std::string name) {

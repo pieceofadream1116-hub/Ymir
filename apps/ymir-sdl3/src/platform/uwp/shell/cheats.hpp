@@ -214,8 +214,9 @@ private:
     void Snapshot(ymir::sys::SH2Bus &bus);
     void SetMessage(std::string message);
 
-    static constexpr std::size_t kLockAt = 20; // lock when this many or fewer are left
-    static constexpr int kMinHits = 2;         // ...and the player was hit at least this many times
+    // Lock only a handful, after several hits: locking a wrong value can break the game (a boss that never appears)
+    static constexpr std::size_t kLockAt = 4; // lock when this many or fewer are left
+    static constexpr int kMinHits = 3;        // ...and the player was hit at least this many times
     static constexpr int kCheckEveryFrames = 30;
 
     std::atomic_bool m_startRequested{false};
@@ -225,9 +226,9 @@ private:
 
     // Emulator thread only
     std::vector<uint32> m_addresses;
-    std::vector<uint16> m_first; // value when the search started (full energy)
-    std::vector<uint16> m_ref;   // value at the last "I was hit" press
-    std::vector<uint16> m_last;  // value at the last check
+    std::vector<uint8> m_first; // value when the search started (full energy), one byte per address
+    std::vector<uint8> m_ref;   // value at the last "I was hit" press
+    std::vector<uint8> m_last;  // value at the last check
     std::vector<uint8> m_drops;  // times it went down since the last press
     int m_frames = 0;
     int m_hits = 0;

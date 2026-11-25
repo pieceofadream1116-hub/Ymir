@@ -1634,6 +1634,16 @@ deploy nem inicia o app.
   libretro-database), depois pelo título e pelo nome do arquivo. Os cheats usam a mesma busca. Jogos sem capa embutida
   aparecem no log ("No built-in cover for ...").
 
+### Sessão 2026-11-24 (10) — invencibilidade e localizador de energia corrigidos (não testado)
+
+- Teste do usuário no 0.4.2.10: o localizador travou 20 endereços errados (o chefe da fase sumiu); o código de botões de
+  invencibilidade não funcionou (o menu de pausa do jogo provavelmente consome os botões).
+- Invencibilidade: novo cheat **Debug menu (Invulnerability, level select)** com o patch do menu de debug documentado
+  pela 32bits (0020F214=2300, 0020F280=0023CA78, flag 0023CA78≠0). O menu aparece na tela de pausa do próprio jogo.
+- `AutoFinder` agora busca **bytes** (2 MiB) em vez de palavras de 16 bits, trava só com ≤ 4 endereços e ≥ 3 tiros,
+  e grava códigos de 8 bits (tipo 3).
+- `ButtonMacro`: tempos mais longos (10 quadros apertado/solto, 60 de espera).
+
 ## 1. Estado atual (o que já está pronto e validado)
 
 Validado na máquina de origem em 2026-10-20 (VS Build Tools 2026 18.x, MSVC 14.51, Windows SDK 10.0.26100, CMake 4.3.2):
