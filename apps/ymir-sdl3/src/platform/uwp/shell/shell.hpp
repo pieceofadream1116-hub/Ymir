@@ -155,6 +155,7 @@ private:
     void StartPickerLoad(std::filesystem::path directory);
     void ProcessPickerLoad();
     void StartLibraryScan();
+    std::vector<std::filesystem::path> LibraryFolders() const;
     void SwitchToDesktop();
     void Quit();
 

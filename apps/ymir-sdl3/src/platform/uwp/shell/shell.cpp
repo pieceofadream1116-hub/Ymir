@@ -30,9 +30,9 @@
 
 #include <fmt/format.h>
 
-#include <algorithm>
 #include <array>
 #include <thread>
+#include <algorithm>
 
 namespace platform::uwp::shell {
 
@@ -150,6 +150,12 @@ void Shell::Init() {
     m_library = std::make_unique<GameLibrary>(m_context.profile.GetPath(app::ProfilePath::PersistentState) /
                                               "shell_library.toml");
     m_library->LoadCache();
+    // First start with an ES-DE Saturn folder on the drive: fill the library from it right away
+    if (m_library->Games().empty() && m_config.libraryFolders.empty()) {
+        if (std::vector<std::filesystem::path> folders = LibraryFolders(); !folders.empty()) {
+            m_library->StartScan(std::move(folders));
+        }
+    }
 
     // Covers and background music are the user's own files in the profile. The folders are created here so they
     // show up in the Device Portal file explorer
@@ -578,15 +584,34 @@ void Shell::ProcessPickedFolder() {
     StartLibraryScan();
 }
 
+std::vector<std::filesystem::path> Shell::LibraryFolders() const {
+    // The chosen folders, plus ES-DE's Saturn folder on any drive (<drive>:\ES-DE\ROMs\saturn or
+    // <drive>:\ROMs\saturn), which is always searched
+    std::vector<std::filesystem::path> folders = m_config.libraryFolders;
+    for (char drive = 'D'; drive <= 'Z'; drive++) {
+        for (const char *top : {"ES-DE\\ROMs", "ROMs"}) {
+            const std::filesystem::path esde = std::filesystem::path(std::string{drive} + ":\\") / top / "saturn";
+            std::error_code ec;
+            if (std::filesystem::is_directory(esde, ec) &&
+                std::find(folders.begin(), folders.end(), esde) == folders.end()) {
+                devlog::info<grp::shell>("Game library: searching the ES-DE folder {}", ToUtf8(esde));
+                folders.push_back(esde);
+            }
+        }
+    }
+    return folders;
+}
+
 void Shell::StartLibraryScan() {
-    if (m_config.libraryFolders.empty()) {
+    std::vector<std::filesystem::path> folders = LibraryFolders();
+    if (folders.empty()) {
         // Nothing to scan yet: ask for a folder first
         OpenFolderPicker();
         return;
     }
     if (m_library != nullptr && !m_library->Scanning()) {
         m_marquee.Post("Scanning the game library...");
-        m_library->StartScan(m_config.libraryFolders);
+        m_library->StartScan(std::move(folders));
     }
 }
 
