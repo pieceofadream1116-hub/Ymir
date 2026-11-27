@@ -48,6 +48,9 @@ bool ShellConfig::Load(const std::filesystem::path &path) {
     if (auto opt = data["Shell"]["Scanlines"].value<bool>()) {
         scanlines = *opt;
     }
+    if (auto opt = data["Shell"]["BackgroundPicture"].value<std::string>()) {
+        backgroundPicture = std::filesystem::path{std::u8string{opt->begin(), opt->end()}};
+    }
     if (auto opt = data["Shell"]["SharpPixels"].value<bool>()) {
         sharpPixels = *opt;
     }
@@ -75,6 +78,10 @@ bool ShellConfig::Save(const std::filesystem::path &path) const {
         {"Mode", std::string{mode == UIMode::Desktop ? kModeDesktop : kModeShell}},
         {"SafeArea", static_cast<double>(safeArea)},
         {"Scanlines", scanlines},
+        {"BackgroundPicture", [this] {
+             const std::u8string text = backgroundPicture.u8string();
+             return std::string{text.begin(), text.end()};
+         }()},
         {"SharpPixels", sharpPixels},
         {"SmoothPicture", smoothPicture},
         {"WizardCompleted", wizardCompleted},

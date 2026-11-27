@@ -43,6 +43,9 @@ struct ShellConfig {
     /// @brief Whether the faint CRT scanlines are drawn over the shell.
     bool scanlines = true;
 
+    /// @brief The player's own picture behind the shell (replaces the space artwork); empty for the artwork.
+    std::filesystem::path backgroundPicture;
+
     /// @brief Whether the game picture is scaled straight to the screen size with nearest-neighbor sampling, so every
     /// Saturn pixel stays crisp. Off uses the smoother sharp-bilinear scaling of desktop Ymir.
     bool sharpPixels = true;

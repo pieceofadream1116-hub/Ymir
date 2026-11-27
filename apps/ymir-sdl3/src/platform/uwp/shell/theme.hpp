@@ -88,6 +88,15 @@ public:
     /// @return the asset, or `nullptr` if it is not part of the theme
     [[nodiscard]] const ThemeAsset *Find(std::string_view id) const;
 
+    /// @brief Shows a picture file in place of an asset (the player's own background). The first replacement keeps
+    /// the original, which RestoreAsset() brings back.
+    /// @return whether the picture could be read and made into a texture
+    bool ReplaceAsset(app::services::GraphicsService &graphicsService, const std::string &id,
+                      const std::filesystem::path &picture);
+
+    /// @brief Brings back the asset's original artwork after ReplaceAsset().
+    void RestoreAsset(const std::string &id);
+
     /// @brief Retrieves the positions of the shell elements, from the `[layout]` section of the manifest.
     [[nodiscard]] const ThemeLayout &GetLayout() const {
         return m_layout;
@@ -113,6 +122,7 @@ private:
     };
 
     std::unordered_map<std::string, ThemeAsset> m_assets;
+    std::unordered_map<std::string, ThemeAsset> m_originalAssets; // replaced by ReplaceAsset()
     ThemeLayout m_layout;
     std::vector<std::unique_ptr<PixelData>> m_pixels;
     std::string m_fontData;

@@ -129,6 +129,7 @@ private:
         Disc,   // pick a disc image (.cue, .chd, .iso, .ccd, .mds) to boot
         Bios,   // pick a Saturn IPL ROM (.bin, .rom, .ic17)
         Folder, // pick a directory to add to the game library
+        Picture, // pick a picture (.jpg, .png) to show behind the shell
     };
 
     // Screens and transitions

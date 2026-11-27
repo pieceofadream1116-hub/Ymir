@@ -17,6 +17,7 @@
 #include <app/shared_context.hpp>
 
 #include <app/services/disc_service.hpp>
+#include <app/services/graphics_service.hpp>
 #include <app/services/save_state_service.hpp>
 #include <app/services/window_manager_service.hpp>
 
@@ -379,6 +380,17 @@ OverlayScreen Shell::BuildSettingsScreen() {
                 SaveConfig();
             },
             Percent));
+        page.rows.push_back(OverlayRow::Action(
+            "Choose my own background picture", "Show a picture (.jpg or .png) from your drive behind the shell.",
+            [this] { OpenFilePicker(FilePickerMode::Picture, {}); },
+            [this] { return m_config.backgroundPicture.empty() ? std::string{"SPACE"} : std::string{"MY PICTURE"}; }));
+        page.rows.push_back(OverlayRow::Action(
+            "Use the space background", "Go back to the space artwork behind the shell.", [this] {
+                m_config.backgroundPicture.clear();
+                SaveConfig();
+                m_theme.RestoreAsset("bg_space");
+                m_marquee.Post("Space background is back");
+            }));
         page.rows.push_back(OverlayRow::Toggle(
             "CRT scanlines", "Draw faint scanlines over the shell screens.", [this] { return m_config.scanlines; },
             [this](bool value) {
@@ -879,6 +891,7 @@ OverlayScreen Shell::BuildResetConfirmScreen() {
 OverlayScreen Shell::BuildFilePickerScreen() {
     const char *screenTitle = m_pickerMode == FilePickerMode::Disc   ? "LOAD DISC IMAGE"
                               : m_pickerMode == FilePickerMode::Bios ? "SELECT SATURN BIOS (IPL ROM)"
+                              : m_pickerMode == FilePickerMode::Picture ? "CHOOSE BACKGROUND PICTURE"
                                                                      : "SELECT GAMES LIBRARY FOLDER";
     OverlayScreen screen{.title = screenTitle, .pages = {}};
 
@@ -913,6 +926,9 @@ OverlayScreen Shell::BuildFilePickerScreen() {
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (mode == FilePickerMode::Disc) {
             return ext == ".cue" || ext == ".chd" || ext == ".iso" || ext == ".ccd" || ext == ".mds";
+        }
+        if (mode == FilePickerMode::Picture) {
+            return ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".bmp";
         }
         // Bios mode: accept common Saturn BIOS extensions (.bin, .rom, .ic17, .bios)
         return ext == ".bin" || ext == ".rom" || ext == ".ic17" || ext == ".bios" || ext.empty();
@@ -1052,11 +1068,21 @@ OverlayScreen Shell::BuildFilePickerScreen() {
         const std::string name = ToUtf8(filePath.filename());
         const std::string sizeStr = formatSize(file.size);
         const bool isDisc = m_pickerMode == FilePickerMode::Disc;
+        const bool isPicture = m_pickerMode == FilePickerMode::Picture;
         OverlayRow row = OverlayRow::Action(
             name, ToUtf8(filePath),
-            [this, filePath, isDisc] {
+            [this, filePath, isDisc, isPicture] {
                 m_overlay.Pop();
-                if (isDisc) {
+                if (isPicture) {
+                    auto &graphics = m_context.serviceLocator.GetRequired<app::services::GraphicsService>();
+                    if (m_theme.ReplaceAsset(graphics, "bg_space", filePath)) {
+                        m_config.backgroundPicture = filePath;
+                        SaveConfig();
+                        m_marquee.Post("Your background picture is on");
+                    } else {
+                        m_marquee.Post("That picture could not be read");
+                    }
+                } else if (isDisc) {
                     m_music.PlaySfx(Sfx::Select);
                     LaunchGame(filePath);
                 } else {

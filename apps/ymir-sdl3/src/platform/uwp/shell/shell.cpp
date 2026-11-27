@@ -142,6 +142,9 @@ void Shell::Init() {
     const std::filesystem::path root = m_context.profile.GetPath(app::ProfilePath::Root);
     auto &graphics = m_context.serviceLocator.GetRequired<app::services::GraphicsService>();
     m_theme.Load(graphics, root / "shell-theme");
+    if (!m_config.backgroundPicture.empty() && !m_theme.ReplaceAsset(graphics, "bg_space", m_config.backgroundPicture)) {
+        devlog::warn<grp::shell>("Your background picture could not be shown; using the space artwork");
+    }
 
     // The marquee shows what happens from now on; the startup chatter before the shell existed is skipped
     m_lastMessageTime = std::chrono::steady_clock::now();
@@ -485,6 +488,7 @@ void Shell::ProcessPickerLoad() {
 
     const std::string_view expectedTitle = m_pickerMode == FilePickerMode::Disc   ? "LOAD DISC IMAGE"
                                            : m_pickerMode == FilePickerMode::Bios ? "SELECT SATURN BIOS (IPL ROM)"
+                                           : m_pickerMode == FilePickerMode::Picture ? "CHOOSE BACKGROUND PICTURE"
                                                                                   : "SELECT GAMES LIBRARY FOLDER";
     if (m_overlay.TopScreenTitle() == expectedTitle) {
         m_overlay.Replace(BuildFilePickerScreen(), true);

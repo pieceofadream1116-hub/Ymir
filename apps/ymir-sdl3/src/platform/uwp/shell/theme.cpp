@@ -282,6 +282,70 @@ void Theme::Load(app::services::GraphicsService &graphicsService, const std::fil
     devlog::info<grp::shell>("Loaded {} theme assets", m_assets.size());
 }
 
+bool Theme::ReplaceAsset(app::services::GraphicsService &graphicsService, const std::string &id,
+                         const std::filesystem::path &picture) {
+    std::ifstream in{picture, std::ios::binary};
+    if (!in) {
+        devlog::warn<grp::shell>("Background picture {} could not be opened", picture);
+        return false;
+    }
+    const std::string fileData{std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{}};
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    stbi_uc *decoded = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileData.data()),
+                                             static_cast<int>(fileData.size()), &width, &height, &channels, 4);
+    if (decoded == nullptr) {
+        devlog::warn<grp::shell>("Background picture {} could not be decoded: {}", picture, stbi_failure_reason());
+        return false;
+    }
+    auto pixels = std::make_unique<PixelData>();
+    pixels->width = static_cast<std::uint32_t>(width);
+    pixels->height = static_cast<std::uint32_t>(height);
+    pixels->rgba.assign(decoded, decoded + static_cast<std::size_t>(width) * height * 4u);
+    stbi_image_free(decoded);
+
+    const PixelData *source = pixels.get();
+    auto textureResult = graphicsService.CreateTexture(
+        {
+            .width = source->width,
+            .height = source->height,
+            .format = app::gfx::PixelFormat::R8G8B8A8_UNORM,
+            .access = app::gfx::TextureAccess::Static,
+            .name = "[Ymir] Shell " + id + " (own picture)",
+        },
+        [source](app::gfx::GUITextureHandle, bool, void *data, size_t pitch) {
+            auto *bytes = static_cast<std::uint8_t *>(data);
+            const std::size_t rowSize = static_cast<std::size_t>(source->width) * 4u;
+            for (std::uint32_t y = 0; y < source->height; ++y) {
+                std::memcpy(bytes + y * pitch, source->rgba.data() + y * rowSize, rowSize);
+            }
+        });
+    if (!textureResult) {
+        devlog::warn<grp::shell>("Background picture: could not create texture: {}", textureResult.Error().message);
+        return false;
+    }
+    if (auto it = m_assets.find(id); it != m_assets.end() && !m_originalAssets.contains(id)) {
+        m_originalAssets.insert_or_assign(id, it->second);
+    }
+    ThemeAsset asset{};
+    asset.texture = textureResult.Value();
+    asset.textureWidth = static_cast<float>(width);
+    asset.textureHeight = static_cast<float>(height);
+    m_pixels.push_back(std::move(pixels));
+    m_assets.insert_or_assign(id, asset);
+    devlog::info<grp::shell>("Background picture {} ({}x{})", picture, width, height);
+    return true;
+}
+
+void Theme::RestoreAsset(const std::string &id) {
+    if (auto it = m_originalAssets.find(id); it != m_originalAssets.end()) {
+        m_assets.insert_or_assign(id, it->second);
+    } else {
+        m_assets.erase(id);
+    }
+}
+
 const ThemeAsset *Theme::Find(std::string_view id) const {
     auto it = m_assets.find(std::string{id});
     return it != m_assets.end() ? &it->second : nullptr;
