@@ -78,7 +78,9 @@ namespace {
         std::vector<std::filesystem::path> dirs;
         for (char drive = 'D'; drive <= 'Z'; ++drive) {
             const std::filesystem::path root = std::string{drive} + ":\\";
-            for (const char *sub : {"", "BIOS", "Saturn", "Saturn\\BIOS", "Ymir\\BIOS"}) {
+            for (const char *sub : {"", "BIOS", "bios", "Saturn", "Saturn\\BIOS", "Ymir\\BIOS", "ES-DE\\BIOS", "ES-DE\\bios",
+                                     "ES-DE\\ROMs\\bios", "ES-DE\\ROMs\\saturn", "ROMs\\bios", "ROMs\\saturn",
+                                     "RetroArch\\system", "system", "System"}) {
                 dirs.push_back(root / sub);
             }
         }
