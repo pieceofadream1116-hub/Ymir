@@ -980,6 +980,10 @@ namespace {
     constexpr int kHoldFrames = 10;
     constexpr int kGapFrames = 10;
     constexpr int kSettleFrames = 60; // after resuming from the app's menu, and after pausing the game
+    // Start is held longer and given more time: when the game missed the first Start, the code went into the
+    // running game instead of its pause screen
+    constexpr int kStartHoldFrames = 20;
+    constexpr int kResumeSettleFrames = 120; // the game may still be fading back in after the app's menu closes
 } // namespace
 
 bool ButtonMacro::Start(std::string_view sequence, std::string name) {
@@ -989,9 +993,9 @@ bool ButtonMacro::Start(std::string_view sequence, std::string name) {
     constexpr uint16 kNone = 0xFFFF;
     const uint16 start = *ButtonBit("Start");
     std::vector<Press> presses;
-    presses.push_back({kNone, kSettleFrames});
+    presses.push_back({kNone, kResumeSettleFrames});
     // Pause the game with Start
-    presses.push_back({static_cast<uint16>(kNone & ~start), kHoldFrames});
+    presses.push_back({static_cast<uint16>(kNone & ~start), kStartHoldFrames});
     presses.push_back({kNone, kSettleFrames});
     std::size_t pos = 0;
     while (pos < sequence.size()) {
@@ -1010,7 +1014,7 @@ bool ButtonMacro::Start(std::string_view sequence, std::string name) {
     }
     // Unpause with Start
     presses.push_back({kNone, kSettleFrames});
-    presses.push_back({static_cast<uint16>(kNone & ~start), kHoldFrames});
+    presses.push_back({static_cast<uint16>(kNone & ~start), kStartHoldFrames});
     presses.push_back({kNone, kGapFrames});
 
     std::lock_guard lock{m_mutex};
